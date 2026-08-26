@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAttekintesRouteImport } from './routes/_authenticated/attekintes'
+import { Route as AuthenticatedBeallitasokRouteImport } from './routes/_authenticated/beallitasok'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedEmailSorRouteImport } from './routes/_authenticated/email-sor'
 import { Route as AuthenticatedFelhasznalokRouteImport } from './routes/_authenticated/felhasznalok'
@@ -38,6 +39,12 @@ const AuthenticatedAttekintesRoute = AuthenticatedAttekintesRouteImport.update({
   path: '/attekintes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBeallitasokRoute =
+  AuthenticatedBeallitasokRouteImport.update({
+    id: '/beallitasok',
+    path: '/beallitasok',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
   id: '/crm',
   path: '/crm',
@@ -69,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/attekintes': typeof AuthenticatedAttekintesRoute
+  '/beallitasok': typeof AuthenticatedBeallitasokRoute
   '/crm': typeof AuthenticatedCrmRoute
   '/email-sor': typeof AuthenticatedEmailSorRoute
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
@@ -79,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/attekintes': typeof AuthenticatedAttekintesRoute
+  '/beallitasok': typeof AuthenticatedBeallitasokRoute
   '/crm': typeof AuthenticatedCrmRoute
   '/email-sor': typeof AuthenticatedEmailSorRoute
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
@@ -91,6 +100,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/attekintes': typeof AuthenticatedAttekintesRoute
+  '/_authenticated/beallitasok': typeof AuthenticatedBeallitasokRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
   '/_authenticated/email-sor': typeof AuthenticatedEmailSorRoute
   '/_authenticated/felhasznalok': typeof AuthenticatedFelhasznalokRoute
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/attekintes'
+    | '/beallitasok'
     | '/crm'
     | '/email-sor'
     | '/felhasznalok'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/attekintes'
+    | '/beallitasok'
     | '/crm'
     | '/email-sor'
     | '/felhasznalok'
@@ -124,6 +136,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/attekintes'
+    | '/_authenticated/beallitasok'
     | '/_authenticated/crm'
     | '/_authenticated/email-sor'
     | '/_authenticated/felhasznalok'
@@ -167,6 +180,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAttekintesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/beallitasok': {
+      id: '/_authenticated/beallitasok'
+      path: '/beallitasok'
+      fullPath: '/beallitasok'
+      preLoaderRoute: typeof AuthenticatedBeallitasokRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/crm': {
       id: '/_authenticated/crm'
       path: '/crm'
@@ -207,6 +227,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAttekintesRoute: typeof AuthenticatedAttekintesRoute
+  AuthenticatedBeallitasokRoute: typeof AuthenticatedBeallitasokRoute
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedEmailSorRoute: typeof AuthenticatedEmailSorRoute
   AuthenticatedFelhasznalokRoute: typeof AuthenticatedFelhasznalokRoute
@@ -216,6 +237,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAttekintesRoute: AuthenticatedAttekintesRoute,
+  AuthenticatedBeallitasokRoute: AuthenticatedBeallitasokRoute,
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedEmailSorRoute: AuthenticatedEmailSorRoute,
   AuthenticatedFelhasznalokRoute: AuthenticatedFelhasznalokRoute,
