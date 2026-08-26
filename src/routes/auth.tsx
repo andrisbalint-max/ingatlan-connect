@@ -31,8 +31,10 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -40,16 +42,46 @@ function AuthPage() {
     });
   }, [navigate]);
 
+  async function handleResend() {
+    setResending(true);
+    setError(null);
+    setInfo(null);
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setResending(false);
+    if (resendError) {
+      setError(
+        resendError.message.includes("rate limit") || resendError.message.includes("security purposes")
+          ? "Túl sok kérés. Kérjük, várjon egy percet, majd próbálja újra."
+          : resendError.message,
+      );
+      return;
+    }
+    setInfo("Új megerősítő emailt küldtünk. Ellenőrizze a postafiókját (és a spam mappát is).");
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError(null);
     setInfo(null);
+    setNeedsConfirm(false);
 
     if (mode === "login") {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (signInError) {
+        const code = (signInError as { code?: string }).code;
+        if (code === "email_not_confirmed" || signInError.message.includes("Email not confirmed")) {
+          setNeedsConfirm(true);
+          setError(
+            "Az email cím még nincs megerősítve. Kattintson a postafiókjába küldött megerősítő linkre.",
+          );
+          return;
+        }
         setError("Hibás email cím vagy jelszó.");
         return;
       }
@@ -60,7 +92,7 @@ function AuthPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/attekintes` },
+      options: { emailRedirectTo: window.location.origin },
     });
     setLoading(false);
     if (signUpError) {
@@ -71,8 +103,10 @@ function AuthPage() {
       navigate({ to: "/attekintes", replace: true });
       return;
     }
+    setNeedsConfirm(true);
     setInfo("Elküldtünk egy megerősítő emailt. Kérjük, ellenőrizze a postafiókját.");
   }
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
