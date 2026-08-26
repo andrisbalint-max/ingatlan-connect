@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAttekintesRouteImport } from './routes/_authenticated/attekintes'
+import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedEmailSorRouteImport } from './routes/_authenticated/email-sor'
 import { Route as AuthenticatedFelhasznalokRouteImport } from './routes/_authenticated/felhasznalok'
 
@@ -35,6 +36,11 @@ const AuthenticatedAttekintesRoute = AuthenticatedAttekintesRouteImport.update({
   path: '/attekintes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEmailSorRoute = AuthenticatedEmailSorRouteImport.update({
   id: '/email-sor',
   path: '/email-sor',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/attekintes': typeof AuthenticatedAttekintesRoute
+  '/crm': typeof AuthenticatedCrmRoute
   '/email-sor': typeof AuthenticatedEmailSorRoute
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
 }
@@ -58,6 +65,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/attekintes': typeof AuthenticatedAttekintesRoute
+  '/crm': typeof AuthenticatedCrmRoute
   '/email-sor': typeof AuthenticatedEmailSorRoute
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
 }
@@ -67,20 +75,23 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/attekintes': typeof AuthenticatedAttekintesRoute
+  '/_authenticated/crm': typeof AuthenticatedCrmRoute
   '/_authenticated/email-sor': typeof AuthenticatedEmailSorRoute
   '/_authenticated/felhasznalok': typeof AuthenticatedFelhasznalokRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/attekintes' | '/email-sor' | '/felhasznalok'
+  fullPaths:
+    '/' | '/auth' | '/attekintes' | '/crm' | '/email-sor' | '/felhasznalok'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/attekintes' | '/email-sor' | '/felhasznalok'
+  to: '/' | '/auth' | '/attekintes' | '/crm' | '/email-sor' | '/felhasznalok'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/attekintes'
+    | '/_authenticated/crm'
     | '/_authenticated/email-sor'
     | '/_authenticated/felhasznalok'
   fileRoutesById: FileRoutesById
@@ -121,6 +132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAttekintesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/crm': {
+      id: '/_authenticated/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof AuthenticatedCrmRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/email-sor': {
       id: '/_authenticated/email-sor'
       path: '/email-sor'
@@ -140,12 +158,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAttekintesRoute: typeof AuthenticatedAttekintesRoute
+  AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedEmailSorRoute: typeof AuthenticatedEmailSorRoute
   AuthenticatedFelhasznalokRoute: typeof AuthenticatedFelhasznalokRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAttekintesRoute: AuthenticatedAttekintesRoute,
+  AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedEmailSorRoute: AuthenticatedEmailSorRoute,
   AuthenticatedFelhasznalokRoute: AuthenticatedFelhasznalokRoute,
 }
