@@ -159,6 +159,20 @@ function AuthPage() {
             {error && <p className="text-sm text-destructive">{error}</p>}
             {info && <p className="text-sm text-accent-foreground">{info}</p>}
 
+            {needsConfirm && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={resending || !email}
+                onClick={handleResend}
+              >
+                {resending && <Loader2 className="size-4 animate-spin" strokeWidth={1.5} />}
+                Megerősítő email újraküldése
+              </Button>
+            )}
+
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="size-4 animate-spin" strokeWidth={1.5} />}
               {mode === "login" ? "Belépés" : "Fiók létrehozása"}
