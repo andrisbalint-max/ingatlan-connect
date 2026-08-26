@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAttekintesRouteImport } from './routes/_authenticated/attekintes'
+import { Route as AuthenticatedFelhasznalokRouteImport } from './routes/_authenticated/felhasznalok'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,16 +34,24 @@ const AuthenticatedAttekintesRoute = AuthenticatedAttekintesRouteImport.update({
   path: '/attekintes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFelhasznalokRoute =
+  AuthenticatedFelhasznalokRouteImport.update({
+    id: '/felhasznalok',
+    path: '/felhasznalok',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/attekintes': typeof AuthenticatedAttekintesRoute
+  '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/attekintes': typeof AuthenticatedAttekintesRoute
+  '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,18 +59,20 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/attekintes': typeof AuthenticatedAttekintesRoute
+  '/_authenticated/felhasznalok': typeof AuthenticatedFelhasznalokRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/attekintes'
+  fullPaths: '/' | '/auth' | '/attekintes' | '/felhasznalok'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/attekintes'
+  to: '/' | '/auth' | '/attekintes' | '/felhasznalok'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/attekintes'
+    | '/_authenticated/felhasznalok'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -100,15 +111,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAttekintesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/felhasznalok': {
+      id: '/_authenticated/felhasznalok'
+      path: '/felhasznalok'
+      fullPath: '/felhasznalok'
+      preLoaderRoute: typeof AuthenticatedFelhasznalokRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAttekintesRoute: typeof AuthenticatedAttekintesRoute
+  AuthenticatedFelhasznalokRoute: typeof AuthenticatedFelhasznalokRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAttekintesRoute: AuthenticatedAttekintesRoute,
+  AuthenticatedFelhasznalokRoute: AuthenticatedFelhasznalokRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
