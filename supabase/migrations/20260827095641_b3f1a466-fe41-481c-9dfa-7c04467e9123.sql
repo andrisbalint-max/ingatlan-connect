@@ -1,0 +1,1 @@
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS follow_up_schedule jsonb NOT NULL DEFAULT '[4,10,21]'::jsonb;
