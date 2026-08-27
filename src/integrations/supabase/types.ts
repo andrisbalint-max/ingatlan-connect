@@ -449,6 +449,7 @@ export type Database = {
         Row: {
           created_at: string
           daily_email_limit: number
+          follow_up_schedule: Json
           hunter_api_key: string | null
           id: string
           openai_api_key: string | null
@@ -460,6 +461,7 @@ export type Database = {
         Insert: {
           created_at?: string
           daily_email_limit?: number
+          follow_up_schedule?: Json
           hunter_api_key?: string | null
           id?: string
           openai_api_key?: string | null
@@ -471,6 +473,7 @@ export type Database = {
         Update: {
           created_at?: string
           daily_email_limit?: number
+          follow_up_schedule?: Json
           hunter_api_key?: string | null
           id?: string
           openai_api_key?: string | null
