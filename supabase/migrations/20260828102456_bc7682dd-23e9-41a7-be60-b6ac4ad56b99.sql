@@ -1,0 +1,1 @@
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS hunter_searched boolean NOT NULL DEFAULT false;
