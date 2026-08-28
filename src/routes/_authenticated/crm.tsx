@@ -147,7 +147,12 @@ function CrmPage() {
   const meta = useMemo(() => {
     const byCompany = new Map<
       string,
-      { pending: number; lastActivity: string | null; contactName?: string; contactEmail?: string }
+      {
+        pending: number;
+        lastActivity: string | null;
+        contactName?: string;
+        contactEmail?: string | undefined;
+      }
     >();
 
     const ensure = (id: string) => {
