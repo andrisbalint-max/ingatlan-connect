@@ -177,11 +177,14 @@ function EmailQueuePage() {
 
   const setStatus = useMutation({
     mutationFn: async ({ ids, status }: { ids: string[]; status: EmailStatus }) => {
-      const payload: Record<string, unknown> = { status };
-      if (status === "jovahagyva") payload.approved_at = new Date().toISOString();
+      const payload =
+        status === "jovahagyva"
+          ? { status, approved_at: new Date().toISOString() }
+          : { status };
       const { error } = await supabase.from("emails_queue").update(payload).in("id", ids);
       if (error) throw error;
     },
+
     onSuccess: (_data, variables) => {
       invalidate();
       toast.success(
