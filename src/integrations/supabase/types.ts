@@ -151,6 +151,7 @@ export type Database = {
           body: string | null
           company_id: string | null
           contact_id: string | null
+          context_note: string | null
           created_at: string
           follow_up_number: number
           id: string
@@ -166,6 +167,7 @@ export type Database = {
           body?: string | null
           company_id?: string | null
           contact_id?: string | null
+          context_note?: string | null
           created_at?: string
           follow_up_number?: number
           id?: string
@@ -181,6 +183,7 @@ export type Database = {
           body?: string | null
           company_id?: string | null
           contact_id?: string | null
+          context_note?: string | null
           created_at?: string
           follow_up_number?: number
           id?: string
@@ -527,7 +530,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user" | "viewer"
       company_status: "nincs_valasz" | "valaszolt" | "erdeklodik" | "lezarva"
-      email_status: "varakozik" | "jovahagyva" | "elkuldot" | "elvetve"
+      email_status:
+        | "varakozik"
+        | "jovahagyva"
+        | "elkuldot"
+        | "elvetve"
+        | "szerkesztett"
       response_category:
         | "erdeklodes"
         | "talalkozo"
@@ -663,7 +671,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user", "viewer"],
       company_status: ["nincs_valasz", "valaszolt", "erdeklodik", "lezarva"],
-      email_status: ["varakozik", "jovahagyva", "elkuldot", "elvetve"],
+      email_status: [
+        "varakozik",
+        "jovahagyva",
+        "elkuldot",
+        "elvetve",
+        "szerkesztett",
+      ],
       response_category: [
         "erdeklodes",
         "talalkozo",
