@@ -19,6 +19,7 @@ export type Database = {
           city: string | null
           created_at: string
           domain: string | null
+          hunter_searched: boolean
           id: string
           industry: string | null
           name: string
@@ -31,6 +32,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           domain?: string | null
+          hunter_searched?: boolean
           id?: string
           industry?: string | null
           name: string
@@ -43,6 +45,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           domain?: string | null
+          hunter_searched?: boolean
           id?: string
           industry?: string | null
           name?: string
