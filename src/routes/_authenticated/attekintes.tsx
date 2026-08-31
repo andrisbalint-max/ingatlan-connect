@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Clock, FolderKanban, Inbox, Send } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Clock, FolderKanban, Inbox, Send, Sparkles } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/attekintes")({
@@ -88,6 +89,8 @@ function Dashboard() {
         ))}
       </div>
 
+      <NewResponses />
+
       <section className="card-surface mt-6 p-6">
         <h2 className="text-base font-semibold text-foreground">Legutóbbi események</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -98,5 +101,89 @@ function Dashboard() {
         </div>
       </section>
     </div>
+  );
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  erdeklodes: "Érdeklődés",
+  talalkozo: "Találkozó",
+  elutasitas: "Elutasítás",
+  kerdes: "Kérdés",
+  autovalasz: "Automatikus válasz",
+};
+
+function NewResponses() {
+  const queryClient = useQueryClient();
+
+  const { data: items } = useQuery({
+    queryKey: ["unseen-responses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("responses")
+        .select("id, received_at, category, raw_text, emails_queue(company_id, companies(name))")
+        .eq("seen", false)
+        .order("received_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data as unknown as Array<{
+        id: string;
+        received_at: string;
+        category: string | null;
+        raw_text: string | null;
+        emails_queue: { companies: { name: string } | null } | null;
+      }>;
+    },
+  });
+
+  const markSeen = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("responses").update({ seen: true }).in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["unseen-responses"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+  });
+
+  if (!items || items.length === 0) return null;
+
+  return (
+    <section className="card-surface mt-6 border-primary/30 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <Sparkles className="size-4 text-primary" strokeWidth={1.5} />
+          Új válaszok ({items.length})
+        </h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => markSeen.mutate(items.map((i) => i.id))}
+          disabled={markSeen.isPending}
+        >
+          Mindet olvasottnak jelölöm
+        </Button>
+      </div>
+      <ul className="mt-4 space-y-3">
+        {items.map((item) => (
+          <li key={item.id} className="rounded-lg border border-input bg-background p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-foreground">
+                {item.emails_queue?.companies?.name ?? "Ismeretlen cég"}
+              </span>
+              <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
+                {item.category ? (CATEGORY_LABELS[item.category] ?? item.category) : "Feldolgozás alatt"}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {new Date(item.received_at).toLocaleString("hu-HU")}
+              </span>
+            </div>
+            <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm text-muted-foreground">
+              {item.raw_text ?? "—"}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

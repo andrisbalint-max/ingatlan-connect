@@ -19,6 +19,7 @@ export type Database = {
           city: string | null
           created_at: string
           domain: string | null
+          follow_up_paused_until: string | null
           hunter_searched: boolean
           id: string
           industry: string | null
@@ -32,6 +33,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           domain?: string | null
+          follow_up_paused_until?: string | null
           hunter_searched?: boolean
           id?: string
           industry?: string | null
@@ -45,6 +47,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           domain?: string | null
+          follow_up_paused_until?: string | null
           hunter_searched?: boolean
           id?: string
           industry?: string | null
@@ -152,8 +155,10 @@ export type Database = {
           company_id: string | null
           contact_id: string | null
           context_note: string | null
+          conversation_id: string | null
           created_at: string
           follow_up_number: number
+          graph_message_id: string | null
           id: string
           last_error: string | null
           organization_id: string
@@ -170,8 +175,10 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           context_note?: string | null
+          conversation_id?: string | null
           created_at?: string
           follow_up_number?: number
+          graph_message_id?: string | null
           id?: string
           last_error?: string | null
           organization_id: string
@@ -188,8 +195,10 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           context_note?: string | null
+          conversation_id?: string | null
           created_at?: string
           follow_up_number?: number
+          graph_message_id?: string | null
           id?: string
           last_error?: string | null
           organization_id?: string
@@ -449,31 +458,37 @@ export type Database = {
           category: Database["public"]["Enums"]["response_category"] | null
           created_at: string
           email_id: string | null
+          graph_message_id: string | null
           handled: boolean
           id: string
           organization_id: string
           raw_text: string | null
           received_at: string
+          seen: boolean
         }
         Insert: {
           category?: Database["public"]["Enums"]["response_category"] | null
           created_at?: string
           email_id?: string | null
+          graph_message_id?: string | null
           handled?: boolean
           id?: string
           organization_id: string
           raw_text?: string | null
           received_at?: string
+          seen?: boolean
         }
         Update: {
           category?: Database["public"]["Enums"]["response_category"] | null
           created_at?: string
           email_id?: string | null
+          graph_message_id?: string | null
           handled?: boolean
           id?: string
           organization_id?: string
           raw_text?: string | null
           received_at?: string
+          seen?: boolean
         }
         Relationships: [
           {

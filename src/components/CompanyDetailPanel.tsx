@@ -43,6 +43,23 @@ interface ContactRow {
   position: string | null;
 }
 
+type ResponseCategory = "erdeklodes" | "talalkozo" | "elutasitas" | "kerdes" | "autovalasz";
+
+interface ResponseRow {
+  id: string;
+  received_at: string;
+  category: ResponseCategory | null;
+  raw_text: string | null;
+}
+
+const CATEGORY_LABELS: Record<ResponseCategory, { label: string; className: string }> = {
+  erdeklodes: { label: "Érdeklődés", className: "bg-primary/10 text-primary" },
+  talalkozo: { label: "Találkozó", className: "bg-emerald-100 text-emerald-700" },
+  elutasitas: { label: "Elutasítás", className: "bg-rose-100 text-rose-700" },
+  kerdes: { label: "Kérdés", className: "bg-amber-100 text-amber-700" },
+  autovalasz: { label: "Automatikus válasz", className: "bg-muted text-muted-foreground" },
+};
+
 const emptyContact = { name: "", email: "", phone: "", position: "" };
 
 export function CompanyDetailPanel({
@@ -89,6 +106,27 @@ export function CompanyDetailPanel({
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data as ContactRow[];
+    },
+  });
+
+  const { data: responses, isLoading: responsesLoading } = useQuery({
+    queryKey: ["company-responses", company?.id],
+    enabled: Boolean(company?.id),
+    queryFn: async (): Promise<ResponseRow[]> => {
+      const { data: emails, error: emailsError } = await supabase
+        .from("emails_queue")
+        .select("id")
+        .eq("company_id", company!.id);
+      if (emailsError) throw emailsError;
+      const ids = (emails ?? []).map((e) => e.id);
+      if (ids.length === 0) return [];
+      const { data, error } = await supabase
+        .from("responses")
+        .select("id, received_at, category, raw_text")
+        .in("email_id", ids)
+        .order("received_at", { ascending: false });
+      if (error) throw error;
+      return data as ResponseRow[];
     },
   });
 
@@ -442,6 +480,48 @@ export function CompanyDetailPanel({
                   Az email előzmények az Email sor modul elkészülte után jelennek meg itt.
                 </p>
               </div>
+            </section>
+
+            <Separator />
+
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Válaszok</h3>
+              {responsesLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Betöltés…
+                </div>
+              ) : !responses || responses.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
+                  <Mail className="mx-auto mb-2 size-5 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Ehhez a céghez még nem érkezett válasz.</p>
+                </div>
+              ) : (
+                <ol className="space-y-3 border-l border-border pl-4">
+                  {responses.map((response) => {
+                    const meta = response.category ? CATEGORY_LABELS[response.category] : null;
+                    return (
+                      <li key={response.id} className="relative">
+                        <span className="absolute -left-[21px] top-2 size-2 rounded-full bg-primary" />
+                        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(response.received_at).toLocaleString("hu-HU")}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-medium ${meta?.className ?? "bg-muted text-muted-foreground"}`}
+                            >
+                              {meta?.label ?? "Feldolgozás alatt"}
+                            </span>
+                          </div>
+                          <p className="whitespace-pre-wrap text-sm text-foreground">
+                            {response.raw_text ?? "—"}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
             </section>
           </div>
         )}
