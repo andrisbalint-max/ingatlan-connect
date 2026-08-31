@@ -71,6 +71,10 @@ function Dashboard() {
     <div>
       <PageHeader title="Áttekintés" description="A mai nap legfontosabb mutatói." />
 
+      <AiBudgetBanners />
+
+
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <div key={card.label} className="card-surface p-5">
