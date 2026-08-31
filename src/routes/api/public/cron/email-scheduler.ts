@@ -89,16 +89,21 @@ function parseTime(value: string): { hour: number; minute: number } {
 
 
 
-const BUDAPEST_OFFSET_MINUTES = 60; // Europe/Budapest is UTC+1 in winter; +2 in summer. Using +1 as baseline for MVP.
+function budapestOffsetMinutes(date: Date): number {
+  const utc = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
+  const budapest = new Date(date.toLocaleString("en-US", { timeZone: "Europe/Budapest" }));
+  return Math.round((budapest.getTime() - utc.getTime()) / 60000);
+}
 
 function toBudapestMinutes(date: Date): number {
-  return date.getUTCHours() * 60 + date.getUTCMinutes() + BUDAPEST_OFFSET_MINUTES;
+  return date.getUTCHours() * 60 + date.getUTCMinutes() + budapestOffsetMinutes(date);
 }
 
 function setToBudapestTime(date: Date, hour: number, minute: number): Date {
   const adjusted = new Date(date);
-  const utcHour = hour - Math.floor(BUDAPEST_OFFSET_MINUTES / 60);
-  const utcMinute = minute - (BUDAPEST_OFFSET_MINUTES % 60);
+  const offset = budapestOffsetMinutes(date);
+  const utcHour = hour - Math.floor(offset / 60);
+  const utcMinute = minute - (offset % 60);
   adjusted.setUTCHours(utcHour, utcMinute, 0, 0);
   return adjusted;
 }
@@ -138,4 +143,5 @@ function addJitter(slot: Date, start: { hour: number; minute: number }, end: { h
 
   return next;
 }
+
 
