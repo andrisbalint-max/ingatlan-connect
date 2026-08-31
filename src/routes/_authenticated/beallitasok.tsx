@@ -41,6 +41,8 @@ interface Settings {
   organization_id: string;
   hunter_api_key: string | null;
   openai_api_key: string | null;
+  anthropic_api_key: string | null;
+  preferred_ai_provider: "openai" | "anthropic";
   outlook_connected: boolean;
   daily_email_limit: number;
   send_window_start: string;
