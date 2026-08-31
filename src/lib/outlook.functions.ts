@@ -98,3 +98,55 @@ export const disconnectOutlook = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+export const setupEmailCronJobs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: profile, error: profileError } = await context.supabase
+      .from("profiles")
+      .select("role")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    if (profile?.role !== "admin") throw new Error("Only admins can set up cron jobs.");
+
+    const cronSecret = process.env["LOVABLE_CRON_SECRET"];
+    if (!cronSecret) throw new Error("LOVABLE_CRON_SECRET is not configured.");
+
+    const publicUrl = process.env["APP_PUBLIC_URL"];
+    if (!publicUrl) throw new Error("APP_PUBLIC_URL is not configured.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const schedules = [
+      {
+        name: "email-scheduler-every-5-min",
+        schedule: "*/5 * * * *",
+        url: `${publicUrl}/api/public/cron/email-scheduler`,
+      },
+      {
+        name: "email-sender-every-5-min",
+        schedule: "*/5 * * * *",
+        url: `${publicUrl}/api/public/cron/email-sender`,
+      },
+    ];
+
+    for (const job of schedules) {
+      await supabaseAdmin.rpc("cron_unschedule", { job_name: job.name });
+      const { error } = await supabaseAdmin.rpc("cron_schedule", {
+        job_name: job.name,
+        schedule: job.schedule,
+        command: `
+          select net.http_post(
+            url:='${job.url}',
+            headers:='{"Content-Type": "application/json", "Authorization": "Bearer ${cronSecret}"}'::jsonb,
+            body:='{}'::jsonb
+          ) as request_id;
+        `,
+      });
+      if (error) throw error;
+    }
+
+    return { ok: true };
+  });
+
