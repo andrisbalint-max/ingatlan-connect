@@ -314,6 +314,20 @@ function FoundCompanies() {
           )}
           Keresés Hunterrel
         </Button>
+        {isAdmin && (
+          <Button
+            variant="outline"
+            onClick={() => setBulkDeleteOpen(true)}
+            disabled={selected.size === 0 || deleteProspects.isPending}
+          >
+            {deleteProspects.isPending ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-2 size-4" strokeWidth={1.5} />
+            )}
+            Kiválasztottak törlése
+          </Button>
+        )}
         {progress && (
           <span className="text-sm text-muted-foreground">
             {progress.done}/{progress.total} cég feldolgozva
