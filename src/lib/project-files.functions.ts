@@ -4,15 +4,15 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export interface SummarizeResult {
   status: "ok" | "no_provider" | "out_of_credit" | "unsupported" | "error";
-  message?: string;
-  summary?: string;
+  message?: string | undefined;
+  summary?: string | undefined;
 }
 
 export interface SuggestionResult {
   status: "ok" | "no_provider" | "out_of_credit" | "unsupported" | "error";
-  message?: string;
-  description?: string;
-  targetAudience?: string;
+  message?: string | undefined;
+  description?: string | undefined;
+  targetAudience?: string | undefined;
 }
 
 const SYSTEM_PROMPT =
