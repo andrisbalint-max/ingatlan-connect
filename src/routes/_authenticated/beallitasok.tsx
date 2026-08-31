@@ -51,6 +51,14 @@ interface Settings {
   monthly_ai_budget_usd: number | null;
   ai_usage_estimated_usd: number | null;
   ai_provider_out_of_credit: boolean;
+  opten_api_key: string | null;
+  opten_revenue_bands: RevenueBand[] | null;
+}
+
+interface RevenueBand {
+  label: string;
+  min: number | null;
+  max: number | null;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
