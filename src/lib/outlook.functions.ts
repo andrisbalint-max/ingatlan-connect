@@ -24,7 +24,7 @@ export const startOutlookAuth = createServerFn({ method: "POST" })
     if (profile.role !== "admin") throw new Error("Only admins can connect Outlook.");
 
     const state = signState(profile.organization_id);
-    const redirectUri = `${process.env["LOVABLE_PUBLIC_URL"] ?? ""}/api/public/auth/microsoft/callback`;
+    const redirectUri = `${process.env["APP_PUBLIC_URL"] ?? ""}/api/public/auth/microsoft/callback`;
     const scope = encodeURIComponent("Mail.Send Mail.Read offline_access");
     const authUrl =
       `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize` +
