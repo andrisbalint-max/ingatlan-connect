@@ -224,14 +224,6 @@ export function ProjectCompaniesSection({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-foreground">Célzott cégek</h3>
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => match.mutate()} disabled={match.isPending}>
-            {match.isPending ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : (
-              <Sparkles className="mr-2 size-4" strokeWidth={1.5} />
-            )}
-            Cégek keresése AI-val
-          </Button>
           <Button variant="outline" size="sm" onClick={() => setManualOpen(true)}>
             <Plus className="mr-1 size-4" strokeWidth={1.5} />
             Cég hozzáadása kézzel
