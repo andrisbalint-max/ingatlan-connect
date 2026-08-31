@@ -91,6 +91,10 @@ function FoundCompanies() {
   const [notice, setNotice] = useState<string | null>(null);
   const [newCategoryFor, setNewCategoryFor] = useState<string | null>(null);
   const [newCategoryValue, setNewCategoryValue] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ProspectRow | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  const isAdmin = profile?.role === "admin";
 
   const { data: config } = useQuery({ queryKey: ["opten-config"], queryFn: () => getOptenConfig() });
 
