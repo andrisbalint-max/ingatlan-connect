@@ -129,7 +129,13 @@ export const setupEmailCronJobs = createServerFn({ method: "POST" })
         schedule: "*/5 * * * *",
         url: `${publicUrl}/api/public/cron/email-sender`,
       },
+      {
+        name: "follow-up-generator-daily",
+        schedule: "30 6 * * *",
+        url: `${publicUrl}/api/public/cron/follow-up-generator`,
+      },
     ];
+
 
     for (const job of schedules) {
       await supabaseAdmin.rpc("unschedule_cron_job", { job_name: job.name });
