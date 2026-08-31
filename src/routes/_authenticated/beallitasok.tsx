@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Eye, EyeOff, Plus, X, Mail } from "lucide-react";
+import { Eye, EyeOff, Plus, X, Mail, Loader2, Unlink } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -13,6 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  startOutlookAuth,
+  getOutlookStatus,
+  disconnectOutlook,
+} from "@/lib/outlook.functions";
+
 
 export const Route = createFileRoute("/_authenticated/beallitasok")({
   head: () => ({
