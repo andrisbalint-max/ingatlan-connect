@@ -40,6 +40,7 @@ export const Route = createFileRoute("/api/public/cron/email-scheduler")({
           const startTime = parseTime(org.send_window_start ?? "09:00");
           const endTime = parseTime(org.send_window_end ?? "16:00");
 
+
           const today = new Date();
           today.setUTCHours(0, 0, 0, 0);
 
