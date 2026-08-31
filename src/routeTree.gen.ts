@@ -19,6 +19,7 @@ import { Route as AuthenticatedEmailSorRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedFelhasznalokRouteImport } from './routes/_authenticated/felhasznalok'
 import { Route as AuthenticatedProjektekRouteImport } from './routes/_authenticated/projektek'
 import { Route as AuthenticatedRiportokRouteImport } from './routes/_authenticated/riportok'
+import { Route as ApiPublicAuthMicrosoftCallbackRouteImport } from './routes/api/public/auth/microsoft/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -71,6 +72,12 @@ const AuthenticatedRiportokRoute = AuthenticatedRiportokRouteImport.update({
   path: '/riportok',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicAuthMicrosoftCallbackRoute =
+  ApiPublicAuthMicrosoftCallbackRouteImport.update({
+    id: '/api/public/auth/microsoft/callback',
+    path: '/api/public/auth/microsoft/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
   '/projektek': typeof AuthenticatedProjektekRoute
   '/riportok': typeof AuthenticatedRiportokRoute
+  '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
   '/projektek': typeof AuthenticatedProjektekRoute
   '/riportok': typeof AuthenticatedRiportokRoute
+  '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,6 +115,7 @@ export interface FileRoutesById {
   '/_authenticated/felhasznalok': typeof AuthenticatedFelhasznalokRoute
   '/_authenticated/projektek': typeof AuthenticatedProjektekRoute
   '/_authenticated/riportok': typeof AuthenticatedRiportokRoute
+  '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/felhasznalok'
     | '/projektek'
     | '/riportok'
+    | '/api/public/auth/microsoft/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/felhasznalok'
     | '/projektek'
     | '/riportok'
+    | '/api/public/auth/microsoft/callback'
   id:
     | '__root__'
     | '/'
@@ -142,12 +154,14 @@ export interface FileRouteTypes {
     | '/_authenticated/felhasznalok'
     | '/_authenticated/projektek'
     | '/_authenticated/riportok'
+    | '/api/public/auth/microsoft/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicAuthMicrosoftCallbackRoute: typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -222,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRiportokRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/auth/microsoft/callback': {
+      id: '/api/public/auth/microsoft/callback'
+      path: '/api/public/auth/microsoft/callback'
+      fullPath: '/api/public/auth/microsoft/callback'
+      preLoaderRoute: typeof ApiPublicAuthMicrosoftCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -252,6 +273,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicAuthMicrosoftCallbackRoute: ApiPublicAuthMicrosoftCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
