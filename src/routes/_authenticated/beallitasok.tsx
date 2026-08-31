@@ -204,6 +204,16 @@ function SettingsPage() {
         description="Integrációk, email küldési szabályok és kapcsolatok kezelése."
       />
 
+      {settings?.ai_provider_out_of_credit && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" strokeWidth={1.5} />
+          <p className="text-sm font-medium text-destructive">
+            Elfogyott a(z) {PROVIDER_LABELS[settings.preferred_ai_provider] ?? settings.preferred_ai_provider}{" "}
+            AI-kredit — az automatikus follow-up/riport/projekt-funkciók szünetelnek, amíg fel nem töltöd.
+          </p>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="space-y-6">
           <Skeleton className="h-56 w-full" />
