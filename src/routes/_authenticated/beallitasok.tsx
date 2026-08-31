@@ -273,6 +273,28 @@ function SettingsPage() {
               </p>
             </div>
 
+            <div className="mt-6 max-w-md space-y-2">
+              <Label htmlFor="ai-budget">Havi AI-költségkeret (opcionális, USD)</Label>
+              <Input
+                id="ai-budget"
+                type="number"
+                min={0}
+                step="1"
+                inputMode="decimal"
+                placeholder="Nincs megadva"
+                value={aiBudget}
+                onChange={(e) => setAiBudget(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Csak figyelmeztetéshez használjuk — állíts be emellett tényleges költési korlátot is
+                közvetlenül az OpenAI/Anthropic számlázásában.
+              </p>
+              <p className="text-sm font-medium text-foreground">
+                Becsült ezhavi AI-költés: $
+                {Number(settings?.ai_usage_estimated_usd ?? 0).toFixed(2)}
+              </p>
+            </div>
+
             <div className="mt-6 flex justify-end">
               <Button
                 onClick={() =>
@@ -281,6 +303,10 @@ function SettingsPage() {
                     openai_api_key: openaiKey.trim() || null,
                     anthropic_api_key: anthropicKey.trim() || null,
                     preferred_ai_provider: aiProvider,
+                    monthly_ai_budget_usd:
+                      aiBudget.trim() && Number.isFinite(Number(aiBudget.replace(",", ".")))
+                        ? Number(aiBudget.replace(",", "."))
+                        : null,
                   })
                 }
                 disabled={save.isPending}
