@@ -477,6 +477,10 @@ export function ProjectDetailPanel({
                 projectId={project.id}
                 organizationId={project.organization_id}
               />
+
+              <Separator />
+
+              <OptenSearchSection projectId={project.id} />
             </div>
           </>
         )}
