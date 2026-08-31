@@ -107,16 +107,16 @@ export async function runHunterForProspect(
   const keepManual = options.keepManualPick && Boolean(prospect.decision_maker_email);
   const pick = pickDecisionMaker(people);
 
-  const update: Record<string, unknown> = {
-    hunter_status: status,
-    found_contacts: people as never,
-  };
-  if (!keepManual) {
-    update["decision_maker_name"] = pick.name;
-    update["decision_maker_email"] = pick.email;
-    update["decision_maker_position"] = pick.position;
-    update["decision_maker_match_confidence"] = pick.confidence;
-  }
+  const update = keepManual
+    ? { hunter_status: status, found_contacts: people as never }
+    : {
+        hunter_status: status,
+        found_contacts: people as never,
+        decision_maker_name: pick.name,
+        decision_maker_email: pick.email,
+        decision_maker_position: pick.position,
+        decision_maker_match_confidence: pick.confidence,
+      };
 
   const { error } = await supabase.from("opten_prospects").update(update).eq("id", prospect.id);
   if (error) throw error;

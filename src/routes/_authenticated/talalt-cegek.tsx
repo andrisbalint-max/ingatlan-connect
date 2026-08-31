@@ -212,8 +212,8 @@ function FoundCompanies() {
       const { error } = await supabase
         .from("opten_prospects")
         .update({
-          decision_maker_name: person.name?.trim() || person.email,
-          decision_maker_email: person.email,
+          decision_maker_name: person.name?.trim() || person.email || null,
+          decision_maker_email: person.email ?? null,
           decision_maker_position: person.position ?? null,
           decision_maker_match_confidence: "magas",
         })
