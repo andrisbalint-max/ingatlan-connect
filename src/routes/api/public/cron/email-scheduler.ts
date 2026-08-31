@@ -89,19 +89,34 @@ function parseTime(value: string): { hour: number; minute: number } {
 
 
 
+const BUDAPEST_OFFSET_MINUTES = 60; // Europe/Budapest is UTC+1 in winter; +2 in summer. Using +1 as baseline for MVP.
+
+function toBudapestMinutes(date: Date): number {
+  return date.getUTCHours() * 60 + date.getUTCMinutes() + BUDAPEST_OFFSET_MINUTES;
+}
+
+function setToBudapestTime(date: Date, hour: number, minute: number): Date {
+  const adjusted = new Date(date);
+  const utcHour = hour - Math.floor(BUDAPEST_OFFSET_MINUTES / 60);
+  const utcMinute = minute - (BUDAPEST_OFFSET_MINUTES % 60);
+  adjusted.setUTCHours(utcHour, utcMinute, 0, 0);
+  return adjusted;
+}
+
 function nextSlotWithinWindow(now: Date, start: { hour: number; minute: number }, end: { hour: number; minute: number }): Date {
   const slot = new Date(now);
   slot.setUTCMinutes(slot.getUTCMinutes() + 5, 0, 0);
 
   const startMinutes = start.hour * 60 + start.minute;
   const endMinutes = end.hour * 60 + end.minute;
-  const currentMinutes = slot.getUTCHours() * 60 + slot.getUTCMinutes();
+  const currentMinutes = toBudapestMinutes(slot);
 
   if (currentMinutes < startMinutes) {
-    slot.setUTCHours(start.hour, start.minute, 0, 0);
+    return setToBudapestTime(slot, start.hour, start.minute);
   } else if (currentMinutes > endMinutes) {
-    slot.setUTCDate(slot.getUTCDate() + 1);
-    slot.setUTCHours(start.hour, start.minute, 0, 0);
+    const tomorrow = new Date(slot);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    return setToBudapestTime(tomorrow, start.hour, start.minute);
   }
 
   return slot;
@@ -113,12 +128,14 @@ function addJitter(slot: Date, start: { hour: number; minute: number }, end: { h
   next.setUTCMinutes(next.getUTCMinutes() + jitter, 0, 0);
 
   const endMinutes = end.hour * 60 + end.minute;
-  const currentMinutes = next.getUTCHours() * 60 + next.getUTCMinutes();
+  const currentMinutes = toBudapestMinutes(next);
 
   if (currentMinutes > endMinutes) {
-    next.setUTCDate(next.getUTCDate() + 1);
-    next.setUTCHours(start.hour, start.minute, 0, 0);
+    const tomorrow = new Date(next);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    return setToBudapestTime(tomorrow, start.hour, start.minute);
   }
 
   return next;
 }
+
