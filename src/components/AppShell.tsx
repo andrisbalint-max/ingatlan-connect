@@ -12,6 +12,7 @@ const navItems = [
   { to: "/email-sor", label: "Email sor" },
   { to: "/crm", label: "CRM" },
   { to: "/projektek", label: "Projektek" },
+  { to: "/talalt-cegek", label: "Talált cégek" },
   { to: "/riportok", label: "Riportok" },
   { to: "/beallitasok", label: "Beállítások" },
 ] as const;

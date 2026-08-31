@@ -292,6 +292,82 @@ export type Database = {
           },
         ]
       }
+      opten_prospects: {
+        Row: {
+          city: string | null
+          company_id: string | null
+          company_name: string
+          created_at: string
+          domain: string | null
+          found_contacts: Json
+          hunter_status: string
+          id: string
+          net_revenue_band: string | null
+          organization_id: string
+          project_id: string
+          promoted_to_crm: boolean
+          raw_opten_data: Json | null
+          teaor_code: string | null
+          teaor_description: string | null
+        }
+        Insert: {
+          city?: string | null
+          company_id?: string | null
+          company_name: string
+          created_at?: string
+          domain?: string | null
+          found_contacts?: Json
+          hunter_status?: string
+          id?: string
+          net_revenue_band?: string | null
+          organization_id: string
+          project_id: string
+          promoted_to_crm?: boolean
+          raw_opten_data?: Json | null
+          teaor_code?: string | null
+          teaor_description?: string | null
+        }
+        Update: {
+          city?: string | null
+          company_id?: string | null
+          company_name?: string
+          created_at?: string
+          domain?: string | null
+          found_contacts?: Json
+          hunter_status?: string
+          id?: string
+          net_revenue_band?: string | null
+          organization_id?: string
+          project_id?: string
+          promoted_to_crm?: boolean
+          raw_opten_data?: Json | null
+          teaor_code?: string | null
+          teaor_description?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opten_prospects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opten_prospects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opten_prospects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -489,6 +565,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          opten_search_criteria: Json | null
           organization_id: string
           size_sqm: number | null
           status: string
@@ -500,6 +577,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          opten_search_criteria?: Json | null
           organization_id: string
           size_sqm?: number | null
           status?: string
@@ -511,6 +589,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          opten_search_criteria?: Json | null
           organization_id?: string
           size_sqm?: number | null
           status?: string
@@ -594,6 +673,8 @@ export type Database = {
           id: string
           monthly_ai_budget_usd: number | null
           openai_api_key: string | null
+          opten_api_key: string | null
+          opten_revenue_bands: Json
           organization_id: string
           outlook_connected: boolean
           preferred_ai_provider: string
@@ -612,6 +693,8 @@ export type Database = {
           id?: string
           monthly_ai_budget_usd?: number | null
           openai_api_key?: string | null
+          opten_api_key?: string | null
+          opten_revenue_bands?: Json
           organization_id: string
           outlook_connected?: boolean
           preferred_ai_provider?: string
@@ -630,6 +713,8 @@ export type Database = {
           id?: string
           monthly_ai_budget_usd?: number | null
           openai_api_key?: string | null
+          opten_api_key?: string | null
+          opten_revenue_bands?: Json
           organization_id?: string
           outlook_connected?: boolean
           preferred_ai_provider?: string

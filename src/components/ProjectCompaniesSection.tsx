@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Check, Loader2, Mail, Plus, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { hunterSearch } from "@/lib/hunter.functions";
-import { matchProjectCompanies, generateProjectOutreach } from "@/lib/project-companies.functions";
+import { generateProjectOutreach } from "@/lib/project-companies.functions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -60,7 +60,7 @@ export function ProjectCompaniesSection({
   organizationId: string;
 }) {
   const queryClient = useQueryClient();
-  const runMatch = useServerFn(matchProjectCompanies);
+  
   const runOutreach = useServerFn(generateProjectOutreach);
   const runHunter = useServerFn(hunterSearch);
   const [manualOpen, setManualOpen] = useState(false);
@@ -106,19 +106,6 @@ export function ProjectCompaniesSection({
     },
   });
 
-  const match = useMutation({
-    mutationFn: () => runMatch({ data: { projectId } }),
-    onSuccess: (result) => {
-      if (result.status === "ok" && result.created > 0) {
-        setNotice(null);
-        toast.success(`${result.created} javasolt cég hozzáadva.`);
-      } else {
-        setNotice(result.message ?? "Az AI most nem talált új javaslatot.");
-      }
-      queryClient.invalidateQueries({ queryKey: ["project-companies", projectId] });
-    },
-    onError: (error: Error) => setNotice(error.message),
-  });
 
   /** Approve → optionally auto-run Hunter for a company without contacts. */
   const approve = useMutation({
@@ -224,14 +211,6 @@ export function ProjectCompaniesSection({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-foreground">Célzott cégek</h3>
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => match.mutate()} disabled={match.isPending}>
-            {match.isPending ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : (
-              <Sparkles className="mr-2 size-4" strokeWidth={1.5} />
-            )}
-            Cégek keresése AI-val
-          </Button>
           <Button variant="outline" size="sm" onClick={() => setManualOpen(true)}>
             <Plus className="mr-1 size-4" strokeWidth={1.5} />
             Cég hozzáadása kézzel
@@ -251,7 +230,8 @@ export function ProjectCompaniesSection({
         </div>
       ) : !links || links.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Még nincs célzott cég. Indíts AI-keresést, vagy adj hozzá céget kézzel.
+          Még nincs célzott cég. Importálj cégeket az Opten keresésből, vagy adj hozzá céget
+          kézzel.
         </p>
       ) : (
         <ul className="space-y-3">

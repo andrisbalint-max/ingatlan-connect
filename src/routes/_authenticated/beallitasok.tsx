@@ -51,6 +51,14 @@ interface Settings {
   monthly_ai_budget_usd: number | null;
   ai_usage_estimated_usd: number | null;
   ai_provider_out_of_credit: boolean;
+  opten_api_key: string | null;
+  opten_revenue_bands: RevenueBand[] | null;
+}
+
+interface RevenueBand {
+  label: string;
+  min: number | null;
+  max: number | null;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -148,6 +156,9 @@ function SettingsPage() {
   const [windowStart, setWindowStart] = useState("09:00");
   const [windowEnd, setWindowEnd] = useState("16:00");
   const [schedule, setSchedule] = useState<number[]>([4, 10, 21]);
+  const [optenKey, setOptenKey] = useState("");
+  const [bands, setBands] = useState<RevenueBand[]>([]);
+
 
   useEffect(() => {
     if (!settings) return;
@@ -164,6 +175,8 @@ function SettingsPage() {
     setSchedule(
       Array.isArray(settings.follow_up_schedule) ? settings.follow_up_schedule : [4, 10, 21],
     );
+    setOptenKey(settings.opten_api_key ?? "");
+    setBands(Array.isArray(settings.opten_revenue_bands) ? settings.opten_revenue_bands : []);
   }, [settings]);
 
   const save = useMutation({
@@ -320,6 +333,120 @@ function SettingsPage() {
                       aiBudget.trim() && Number.isFinite(Number(aiBudget.replace(",", ".")))
                         ? Number(aiBudget.replace(",", "."))
                         : null,
+                  })
+                }
+                disabled={save.isPending}
+              >
+                Mentés
+              </Button>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Opten kapcsolat"
+            description="Cégadatbázis-keresés hitelesítése és a választható árbevétel-sávok."
+          >
+            <div className="max-w-md">
+              <SecretInput
+                id="opten"
+                label="Opten API kulcs"
+                helper="Az Opten pontos hitelesítési módja még nincs visszaigazolva (lehet SOAP kliens-tanúsítvány, felhasználónév/jelszó pár vagy egyszerű API kulcs) — a mező formátuma változhat, amint megérkeznek a technikai dokumentumok."
+                value={optenKey}
+                onChange={setOptenKey}
+              />
+            </div>
+
+            <div className="mt-6 space-y-3">
+              <Label>Árbevétel-sávok</Label>
+              {bands.length === 0 ? (
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  Még nincs beállítva árbevétel-sáv — kérd be az Opten által kínált szűrési
+                  lehetőségeket, majd add meg itt.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {bands.map((band, index) => (
+                    <div key={index} className="flex flex-wrap items-center gap-2">
+                      <Input
+                        value={band.label}
+                        placeholder="Sáv megnevezése"
+                        aria-label="Sáv megnevezése"
+                        className="w-56"
+                        onChange={(e) =>
+                          setBands((prev) =>
+                            prev.map((b, i) => (i === index ? { ...b, label: e.target.value } : b)),
+                          )
+                        }
+                      />
+                      <Input
+                        type="number"
+                        min={0}
+                        value={band.min ?? ""}
+                        placeholder="Min (HUF)"
+                        aria-label="Minimum árbevétel forintban"
+                        className="w-40"
+                        onChange={(e) =>
+                          setBands((prev) =>
+                            prev.map((b, i) =>
+                              i === index
+                                ? { ...b, min: e.target.value === "" ? null : Number(e.target.value) }
+                                : b,
+                            ),
+                          )
+                        }
+                      />
+                      <Input
+                        type="number"
+                        min={0}
+                        value={band.max ?? ""}
+                        placeholder="Max (HUF, üres = nincs felső határ)"
+                        aria-label="Maximum árbevétel forintban"
+                        className="w-64"
+                        onChange={(e) =>
+                          setBands((prev) =>
+                            prev.map((b, i) =>
+                              i === index
+                                ? { ...b, max: e.target.value === "" ? null : Number(e.target.value) }
+                                : b,
+                            ),
+                          )
+                        }
+                      />
+                      <button
+                        type="button"
+                        aria-label="Sáv eltávolítása"
+                        onClick={() => setBands((prev) => prev.filter((_, i) => i !== index))}
+                        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setBands((prev) => [...prev, { label: "", min: null, max: null }])}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                Új sáv
+              </Button>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <Button
+                onClick={() =>
+                  save.mutate({
+                    opten_api_key: optenKey.trim() || null,
+                    opten_revenue_bands: bands
+                      .filter((band) => band.label.trim().length > 0)
+                      .map((band) => ({
+                        label: band.label.trim(),
+                        min: band.min ?? null,
+                        max: band.max ?? null,
+                      })),
                   })
                 }
                 disabled={save.isPending}
