@@ -54,7 +54,14 @@ const STATUS_STYLES: Record<string, string> = {
   lezarva: "bg-rose-100 text-rose-700",
 };
 
-const emptyForm = { title: "", description: "", city: "", size_sqm: "", status: "aktiv" };
+const emptyForm = {
+  title: "",
+  description: "",
+  city: "",
+  size_sqm: "",
+  status: "aktiv",
+  target_audience: "",
+};
 
 function Projects() {
   const queryClient = useQueryClient();
