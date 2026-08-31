@@ -32,7 +32,7 @@ export const Route = createFileRoute("/api/public/auth/microsoft/callback")({
           return new Response("Microsoft credentials are not configured.", { status: 500 });
         }
 
-        const redirectUri = `${process.env["LOVABLE_PUBLIC_URL"] ?? ""}/api/public/auth/microsoft/callback`;
+        const redirectUri = `${process.env["APP_PUBLIC_URL"] ?? ""}/api/public/auth/microsoft/callback`;
 
         const tokenResponse = await fetch(
           `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
