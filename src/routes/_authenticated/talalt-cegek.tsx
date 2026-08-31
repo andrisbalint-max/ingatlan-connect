@@ -588,6 +588,60 @@ function FoundCompanies() {
           })}
         </div>
       )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cég törlése</DialogTitle>
+            <DialogDescription>
+              Biztosan törlöd a(z) <strong>{deleteTarget?.company_name}</strong> céget az
+              adatbázisból? Ez minden projektből eltávolítja a hozzá tartozó javaslatokat is.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Mégse
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && deleteProspects.mutate({ ids: [deleteTarget.id] })}
+              disabled={deleteProspects.isPending}
+            >
+              {deleteProspects.isPending && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
+              Törlés
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Kiválasztott cégek törlése</DialogTitle>
+            <DialogDescription>
+              Biztosan törlöd a kiválasztott <strong>{selected.size}</strong> céget az
+              adatbázisból?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
+              Mégse
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteProspects.mutate({ ids: Array.from(selected) })}
+              disabled={selected.size === 0 || deleteProspects.isPending}
+            >
+              {deleteProspects.isPending && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
+              Törlés
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
