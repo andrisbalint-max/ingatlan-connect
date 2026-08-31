@@ -113,7 +113,7 @@ export function ProjectDetailPanel({
 
         const { error: uploadError } = await supabase.storage
           .from("project-files")
-          .upload(path, file, { contentType: file.type || undefined });
+          .upload(path, file, file.type ? { contentType: file.type } : undefined);
         if (uploadError) {
           toast.error(`${file.name}: ${uploadError.message}`);
           continue;
