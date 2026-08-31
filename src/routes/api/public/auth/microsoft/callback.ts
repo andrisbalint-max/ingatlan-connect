@@ -93,9 +93,10 @@ export const Route = createFileRoute("/api/public/auth/microsoft/callback")({
         }
 
         return new Response(
-          `<html><body><script>window.opener.postMessage({type:'microsoftOutlookConnected'}, '*');window.close();</script><p>Sikeres kapcsolódás. Bezárhatod ezt az ablakot.</p></body></html>`,
+          `<html><body><script>window.opener.postMessage({type:'microsoftOutlookConnected'}, window.location.origin);window.close();</script><p>Sikeres kapcsolódás. Bezárhatod ezt az ablakot.</p></body></html>`,
           { headers: { "Content-Type": "text/html" } },
         );
+
       },
     },
   },
