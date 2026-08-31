@@ -218,13 +218,60 @@ function SettingsPage() {
                 value={openaiKey}
                 onChange={setOpenaiKey}
               />
+              <SecretInput
+                id="anthropic"
+                label="Anthropic (Claude) API kulcs"
+                helper="AI szövegek, összefoglalók és piacfigyelés generálásához Claude modellekkel."
+                value={anthropicKey}
+                onChange={setAnthropicKey}
+              />
             </div>
+
+            <div className="mt-6 space-y-3">
+              <Label>Elsődleges AI szolgáltató</Label>
+              <div
+                role="radiogroup"
+                aria-label="Elsődleges AI szolgáltató"
+                className="inline-flex rounded-xl border border-border bg-secondary/40 p-1"
+              >
+                {(
+                  [
+                    { value: "anthropic", label: "Claude" },
+                    { value: "openai", label: "OpenAI" },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={aiProvider === option.value}
+                    onClick={() => setAiProvider(option.value)}
+                    className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+                      aiProvider === option.value
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <p className="max-w-2xl text-xs text-muted-foreground">
+                A rendszer ezt a szolgáltatót használja az AI-funkciókhoz (follow-up emailek,
+                válasz-kategorizálás, összefoglalók, piacfigyelés). Ha a kiválasztotthoz nincs
+                kulcs megadva, a rendszer automatikusan a másikat próbálja használni, ha ahhoz van
+                kulcs megadva.
+              </p>
+            </div>
+
             <div className="mt-6 flex justify-end">
               <Button
                 onClick={() =>
                   save.mutate({
                     hunter_api_key: hunterKey.trim() || null,
                     openai_api_key: openaiKey.trim() || null,
+                    anthropic_api_key: anthropicKey.trim() || null,
+                    preferred_ai_provider: aiProvider,
                   })
                 }
                 disabled={save.isPending}
