@@ -230,7 +230,8 @@ export function ProjectCompaniesSection({
         </div>
       ) : !links || links.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Még nincs célzott cég. Indíts AI-keresést, vagy adj hozzá céget kézzel.
+          Még nincs célzott cég. Importálj cégeket az Opten keresésből, vagy adj hozzá céget
+          kézzel.
         </p>
       ) : (
         <ul className="space-y-3">
