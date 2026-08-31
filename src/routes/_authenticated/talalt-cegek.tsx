@@ -240,6 +240,23 @@ function FoundCompanies() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const deleteProspects = useMutation({
+    mutationFn: async ({ ids }: { ids: string[] }) => {
+      const { error } = await supabase.from("opten_prospects").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["opten-prospects-all"] });
+      queryClient.invalidateQueries({ queryKey: ["project-opten-matches-all"] });
+      setSelected(new Set());
+      setDeleteTarget(null);
+      setBulkDeleteOpen(false);
+      toast.success(`${count} cég törölve.`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return (
     <div>
       <PageHeader
