@@ -405,22 +405,35 @@ function FoundCompanies() {
                               className="mt-1"
                             />
                             <div className="min-w-0 flex-1 space-y-1.5">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-medium text-foreground">
-                                  {row.company_name}
-                                </p>
-                                <span
-                                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                    HUNTER_STATUS_STYLES[row.hunter_status] ??
-                                    "bg-muted text-muted-foreground"
-                                  }`}
-                                >
-                                  {HUNTER_STATUS_LABELS[row.hunter_status] ?? row.hunter_status}
-                                </span>
-                                {row.promoted_to_crm && (
-                                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                                    CRM-ben
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-sm font-medium text-foreground">
+                                    {row.company_name}
+                                  </p>
+                                  <span
+                                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                      HUNTER_STATUS_STYLES[row.hunter_status] ??
+                                      "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    {HUNTER_STATUS_LABELS[row.hunter_status] ?? row.hunter_status}
                                   </span>
+                                  {row.promoted_to_crm && (
+                                    <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                                      CRM-ben
+                                    </span>
+                                  )}
+                                </div>
+                                {isAdmin && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => setDeleteTarget(row)}
+                                    aria-label={`${row.company_name} törlése`}
+                                  >
+                                    <Trash2 className="size-4" strokeWidth={1.5} />
+                                  </Button>
                                 )}
                               </div>
 
