@@ -92,6 +92,27 @@ export function CompanyDetailPanel({
     },
   });
 
+  const { data: responses, isLoading: responsesLoading } = useQuery({
+    queryKey: ["company-responses", company?.id],
+    enabled: Boolean(company?.id),
+    queryFn: async (): Promise<ResponseRow[]> => {
+      const { data: emails, error: emailsError } = await supabase
+        .from("emails_queue")
+        .select("id")
+        .eq("company_id", company!.id);
+      if (emailsError) throw emailsError;
+      const ids = (emails ?? []).map((e) => e.id);
+      if (ids.length === 0) return [];
+      const { data, error } = await supabase
+        .from("responses")
+        .select("id, received_at, category, raw_text")
+        .in("email_id", ids)
+        .order("received_at", { ascending: false });
+      if (error) throw error;
+      return data as ResponseRow[];
+    },
+  });
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["companies"] });
     queryClient.invalidateQueries({ queryKey: ["contacts", company?.id] });
