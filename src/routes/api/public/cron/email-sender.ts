@@ -98,16 +98,17 @@ export const Route = createFileRoute("/api/public/cron/email-sender")({
   },
 });
 
-async function markFailed(emailId: string, error: string) {
+async function markFailed(emailId: string, attempts: number, error: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   await supabaseAdmin
     .from("emails_queue")
     .update({
-      send_attempts: 0,
+      send_attempts: attempts + 1,
       last_error: error.slice(0, 500),
     })
     .eq("id", emailId);
 }
+
 
 async function invalidateConnection(organizationId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
