@@ -5,11 +5,23 @@ import { Download, FileText, Loader2, Sparkles, Trash2, Upload } from "lucide-re
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-import { summarizeProjectFile } from "@/lib/project-files.functions";
+import {
+  summarizeProjectFile,
+  suggestProjectFieldsFromFile,
+} from "@/lib/project-files.functions";
+import { ProjectCompaniesSection } from "@/components/ProjectCompaniesSection";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -26,6 +38,7 @@ export interface ProjectRow {
   city: string | null;
   size_sqm: number | null;
   status: string;
+  target_audience: string | null;
   created_at: string;
 }
 
@@ -39,6 +52,13 @@ interface FileRow {
 
 const ACCEPT = "application/pdf,image/png,image/jpeg,image/webp,image/gif";
 
+const STATUS_OPTIONS = [
+  { value: "aktiv", label: "Aktív" },
+  { value: "eloketszites", label: "Előkészítés" },
+  { value: "szunetel", label: "Szünetel" },
+  { value: "lezarva", label: "Lezárva" },
+];
+
 export function ProjectDetailPanel({
   project,
   open,
@@ -50,13 +70,32 @@ export function ProjectDetailPanel({
 }) {
   const queryClient = useQueryClient();
   const summarize = useServerFn(summarizeProjectFile);
+  const suggest = useServerFn(suggestProjectFieldsFromFile);
   const inputRef = useRef<HTMLInputElement>(null);
+
   const [description, setDescription] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [city, setCity] = useState("");
+  const [sizeSqm, setSizeSqm] = useState("");
+  const [status, setStatus] = useState("aktiv");
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  // AI suggestions from an uploaded PDF — never applied automatically.
+  const [suggestion, setSuggestion] = useState<{
+    description?: string;
+    targetAudience?: string;
+  } | null>(null);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
+
   useEffect(() => {
     setDescription(project?.description ?? "");
+    setTargetAudience(project?.target_audience ?? "");
+    setCity(project?.city ?? "");
+    setSizeSqm(project?.size_sqm != null ? String(project.size_sqm) : "");
+    setStatus(project?.status ?? "aktiv");
+    setSuggestion(null);
+    setAiNotice(null);
   }, [project?.id]);
 
   const { data: files, isLoading: filesLoading } = useQuery({
@@ -73,17 +112,24 @@ export function ProjectDetailPanel({
     },
   });
 
-  const saveDescription = useMutation({
+  const saveBasics = useMutation({
     mutationFn: async () => {
+      const size = sizeSqm.trim() ? Number(sizeSqm.replace(",", ".")) : null;
       const { error } = await supabase
         .from("projects")
-        .update({ description: description.trim() || null })
+        .update({
+          description: description.trim() || null,
+          target_audience: targetAudience.trim() || null,
+          city: city.trim() || null,
+          size_sqm: size !== null && Number.isFinite(size) ? size : null,
+          status,
+        })
         .eq("id", project!.id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Leírás mentve.");
+      toast.success("Alapadatok mentve.");
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -140,6 +186,10 @@ export function ProjectDetailPanel({
           const result = await summarize({ data: { fileId: inserted.id } });
           if (result.status === "ok") {
             toast.success(`${file.name} feltöltve és összegezve.`);
+          } else if (result.status === "no_provider") {
+            setAiNotice("AI-szolgáltató nincs beállítva");
+          } else if (result.status === "out_of_credit") {
+            setAiNotice("Elfogyott az AI-kredit, próbáld később");
           } else {
             toast.info(result.message ?? "Az AI összefoglaló nem készült el.");
           }
@@ -147,6 +197,27 @@ export function ProjectDetailPanel({
           toast.info(err instanceof Error ? err.message : "Az AI összefoglaló nem készült el.");
         }
         queryClient.invalidateQueries({ queryKey: ["project-files", project.id] });
+
+        // PDF-only: suggest description / target audience for empty fields
+        if (file.name.toLowerCase().endsWith(".pdf")) {
+          try {
+            const result = await suggest({ data: { fileId: inserted.id } });
+            if (result.status === "ok") {
+              const next: { description?: string; targetAudience?: string } = {};
+              if (!description.trim() && result.description) next.description = result.description;
+              if (!targetAudience.trim() && result.targetAudience) {
+                next.targetAudience = result.targetAudience;
+              }
+              if (next.description || next.targetAudience) setSuggestion(next);
+            } else if (result.status === "no_provider") {
+              setAiNotice("AI-szolgáltató nincs beállítva");
+            } else if (result.status === "out_of_credit") {
+              setAiNotice("Elfogyott az AI-kredit, próbáld később");
+            }
+          } catch {
+            // suggestions are best-effort only
+          }
+        }
       }
     } finally {
       setUploading(false);
@@ -181,22 +252,128 @@ export function ProjectDetailPanel({
             </SheetHeader>
 
             <div className="mt-6 space-y-6">
-              <section className="space-y-2">
-                <Label htmlFor="project-description">Leírás</Label>
-                <Textarea
-                  id="project-description"
-                  rows={5}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Projekt részletei, műszaki paraméterek…"
-                />
-                <Button
-                  size="sm"
-                  onClick={() => saveDescription.mutate()}
-                  disabled={saveDescription.isPending}
-                >
-                  {saveDescription.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  Leírás mentése
+              {aiNotice && (
+                <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm text-muted-foreground">
+                  {aiNotice}
+                </p>
+              )}
+
+              <section className="space-y-4">
+                <h3 className="text-sm font-semibold text-foreground">Alapadatok</h3>
+
+                {suggestion && (
+                  <div className="space-y-3 rounded-xl border border-primary/30 bg-accent p-4">
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                      <Sparkles className="size-3.5" strokeWidth={1.5} /> AI javaslat a feltöltött PDF
+                      alapján — szerkeszthető, csak elfogadás után kerül a mezőkbe.
+                    </p>
+                    {suggestion.description && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Javasolt leírás</Label>
+                        <Textarea
+                          rows={3}
+                          value={suggestion.description}
+                          onChange={(e) =>
+                            setSuggestion((prev) => ({ ...prev, description: e.target.value }))
+                          }
+                        />
+                      </div>
+                    )}
+                    {suggestion.targetAudience && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Javasolt célközönség</Label>
+                        <Textarea
+                          rows={2}
+                          value={suggestion.targetAudience}
+                          onChange={(e) =>
+                            setSuggestion((prev) => ({ ...prev, targetAudience: e.target.value }))
+                          }
+                        />
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          if (suggestion.description && !description.trim()) {
+                            setDescription(suggestion.description);
+                          }
+                          if (suggestion.targetAudience && !targetAudience.trim()) {
+                            setTargetAudience(suggestion.targetAudience);
+                          }
+                          setSuggestion(null);
+                        }}
+                      >
+                        Javaslat átvétele
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setSuggestion(null)}>
+                        Elvetés
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="project-description">Leírás</Label>
+                  <Textarea
+                    id="project-description"
+                    rows={5}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Projekt részletei, műszaki paraméterek…"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="project-audience">Célközönség / tevékenységi kör</Label>
+                  <Textarea
+                    id="project-audience"
+                    rows={3}
+                    value={targetAudience}
+                    onChange={(e) => setTargetAudience(e.target.value)}
+                    placeholder="Pl. logisztikai szolgáltatók, könnyűipari gyártók, 50+ fős cégek…"
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="project-city">Város</Label>
+                    <Input
+                      id="project-city"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="project-size">Méret (m²)</Label>
+                    <Input
+                      id="project-size"
+                      inputMode="decimal"
+                      value={sizeSqm}
+                      onChange={(e) => setSizeSqm(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Státusz</Label>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button size="sm" onClick={() => saveBasics.mutate()} disabled={saveBasics.isPending}>
+                  {saveBasics.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+                  Alapadatok mentése
                 </Button>
               </section>
 
@@ -293,6 +470,13 @@ export function ProjectDetailPanel({
                   </ul>
                 )}
               </section>
+
+              <Separator />
+
+              <ProjectCompaniesSection
+                projectId={project.id}
+                organizationId={project.organization_id}
+              />
             </div>
           </>
         )}
