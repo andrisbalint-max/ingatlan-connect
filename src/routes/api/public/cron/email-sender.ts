@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/public/cron/email-sender")({
             .eq("organization_id", row.organization_id)
             .maybeSingle();
           if (connError || !conn) {
-            await markFailed(row.id, connError?.message ?? "Outlook connection not found.");
+            await markFailed(row.id, row.send_attempts, connError?.message ?? "Outlook connection not found.");
             results.push({ id: row.id, status: "failed", error: connError?.message ?? "Outlook connection not found." });
             continue;
           }
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/api/public/cron/email-sender")({
             .eq("id", row.contact_id ?? "")
             .maybeSingle();
           if (contactError || !contact?.email) {
-            await markFailed(row.id, contactError?.message ?? "Contact email not found.");
+            await markFailed(row.id, row.send_attempts, contactError?.message ?? "Contact email not found.");
             results.push({ id: row.id, status: "failed", error: contactError?.message ?? "Contact email not found." });
             continue;
           }
@@ -54,10 +54,11 @@ export const Route = createFileRoute("/api/public/cron/email-sender")({
           const accessToken = await refreshAccessToken(refreshToken);
           if (!accessToken) {
             await invalidateConnection(row.organization_id);
-            await markFailed(row.id, "Failed to refresh Microsoft access token.");
+            await markFailed(row.id, row.send_attempts, "Failed to refresh Microsoft access token.");
             results.push({ id: row.id, status: "failed", error: "Failed to refresh Microsoft access token." });
             continue;
           }
+
 
           const sendResult = await sendEmail(
             accessToken,
