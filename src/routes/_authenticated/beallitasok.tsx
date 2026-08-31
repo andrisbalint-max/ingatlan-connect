@@ -473,7 +473,22 @@ function OutlookSection() {
           </Button>
         )}
       </div>
+      <p className="mt-4 text-xs text-muted-foreground">
+        A bekötés után indítsd el az automatikus email küldést az alábbi gombbal.
+      </p>
+      <div className="mt-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={setupCron.isPending}
+          onClick={() => setupCron.mutate()}
+        >
+          {setupCron.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Email cron feladatok beállítása
+        </Button>
+      </div>
     </SectionCard>
   );
 }
+
 
