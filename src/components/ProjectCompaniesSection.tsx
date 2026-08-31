@@ -106,19 +106,6 @@ export function ProjectCompaniesSection({
     },
   });
 
-  const match = useMutation({
-    mutationFn: () => runMatch({ data: { projectId } }),
-    onSuccess: (result) => {
-      if (result.status === "ok" && result.created > 0) {
-        setNotice(null);
-        toast.success(`${result.created} javasolt cég hozzáadva.`);
-      } else {
-        setNotice(result.message ?? "Az AI most nem talált új javaslatot.");
-      }
-      queryClient.invalidateQueries({ queryKey: ["project-companies", projectId] });
-    },
-    onError: (error: Error) => setNotice(error.message),
-  });
 
   /** Approve → optionally auto-run Hunter for a company without contacts. */
   const approve = useMutation({
