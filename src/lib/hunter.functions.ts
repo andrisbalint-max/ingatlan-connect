@@ -103,3 +103,84 @@ export const hunterSearch = createServerFn({ method: "POST" })
 
     return { status: "ok", people };
   });
+
+/**
+ * Same Hunter.io domain search, but keyed on a raw domain instead of a CRM
+ * company — used for Opten prospects that aren't in the CRM yet.
+ */
+export const hunterSearchByDomain = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { domain: string }) => {
+    if (!input || typeof input.domain !== "string" || input.domain.trim().length === 0) {
+      throw new Error("domain szükséges");
+    }
+    return { domain: input.domain.trim() };
+  })
+  .handler(async ({ data, context }): Promise<HunterSearchResult> => {
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+    if (!profile) return { status: "error", message: "A profil nem található.", people: [] };
+
+    const domain = data.domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (!domain) return { status: "no_domain", message: "Nincs domain megadva", people: [] };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: settings } = await supabaseAdmin
+      .from("settings")
+      .select("hunter_api_key")
+      .eq("organization_id", profile.organization_id)
+      .maybeSingle();
+
+    const apiKey = (settings?.hunter_api_key ?? "").trim();
+    if (!apiKey) {
+      return {
+        status: "no_api_key",
+        message: "Állíts be Hunter API kulcsot a Beállításokban",
+        people: [],
+      };
+    }
+
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&limit=25&api_key=${encodeURIComponent(apiKey)}`;
+
+    let payload: unknown;
+    try {
+      const response = await fetch(url);
+      payload = await response.json();
+      if (!response.ok) {
+        const errors = (payload as { errors?: Array<{ details?: string }> })?.errors;
+        return {
+          status: "error",
+          message: errors?.[0]?.details ?? "A Hunter keresés nem sikerült.",
+          people: [],
+        };
+      }
+    } catch {
+      return { status: "error", message: "A Hunter szolgáltatás nem elérhető.", people: [] };
+    }
+
+    const emails =
+      (payload as {
+        data?: {
+          emails?: Array<{
+            value?: string | null;
+            first_name?: string | null;
+            last_name?: string | null;
+            position?: string | null;
+          }>;
+        };
+      }).data?.emails ?? [];
+
+    const people: HunterPerson[] = emails
+      .filter((entry) => Boolean(entry.value))
+      .map((entry) => ({
+        name: [entry.first_name, entry.last_name].filter(Boolean).join(" ").trim() || entry.value!,
+        email: entry.value!,
+        position: entry.position ?? null,
+      }));
+
+    return { status: "ok", people };
+  });
+
