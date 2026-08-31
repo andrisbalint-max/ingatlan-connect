@@ -39,7 +39,7 @@ export interface GenerateTextInput {
   /** Organization whose estimated AI spend should be increased. */
   organizationId?: string;
   /** Optional image for vision-capable prompts (project file summaries). */
-  image?: AiImageInput;
+  image?: AiImageInput | undefined;
   /** Optional override; sensible per-provider defaults are used otherwise. */
   model?: string;
   maxTokens?: number;

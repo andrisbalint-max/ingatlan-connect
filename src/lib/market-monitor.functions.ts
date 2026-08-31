@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export interface ManualMarketMonitorResult {
   status: "ok" | "no_provider" | "out_of_credit" | "error";
   newItems: number;
-  message?: string;
+  message?: string | undefined;
 }
 
 /** Admin-only "Frissítés most" trigger for the market monitor. */

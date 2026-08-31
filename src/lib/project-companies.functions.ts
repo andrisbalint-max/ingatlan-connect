@@ -6,14 +6,14 @@ export type AiCallStatus = "ok" | "no_provider" | "out_of_credit" | "error";
 
 export interface MatchResult {
   status: AiCallStatus;
-  message?: string;
+  message?: string | undefined;
   created: number;
 }
 
 export interface OutreachResult {
   status: AiCallStatus;
-  message?: string;
-  subject?: string;
+  message?: string | undefined;
+  subject?: string | undefined;
 }
 
 const MATCH_SYSTEM_PROMPT =
