@@ -175,6 +175,8 @@ function SettingsPage() {
     setSchedule(
       Array.isArray(settings.follow_up_schedule) ? settings.follow_up_schedule : [4, 10, 21],
     );
+    setOptenKey(settings.opten_api_key ?? "");
+    setBands(Array.isArray(settings.opten_revenue_bands) ? settings.opten_revenue_bands : []);
   }, [settings]);
 
   const save = useMutation({
