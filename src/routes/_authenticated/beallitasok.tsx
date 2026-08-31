@@ -156,6 +156,9 @@ function SettingsPage() {
   const [windowStart, setWindowStart] = useState("09:00");
   const [windowEnd, setWindowEnd] = useState("16:00");
   const [schedule, setSchedule] = useState<number[]>([4, 10, 21]);
+  const [optenKey, setOptenKey] = useState("");
+  const [bands, setBands] = useState<RevenueBand[]>([]);
+
 
   useEffect(() => {
     if (!settings) return;
