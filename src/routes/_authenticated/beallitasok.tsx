@@ -353,3 +353,118 @@ function SettingsPage() {
     </div>
   );
 }
+
+function OutlookSection() {
+  const queryClient = useQueryClient();
+  const [popup, setPopup] = useState<Window | null>(null);
+
+  const { data: status, isLoading } = useQuery({
+    queryKey: ["outlook-status"],
+    queryFn: () => getOutlookStatus(),
+  });
+
+  const connect = useMutation({
+    mutationFn: () => startOutlookAuth(),
+    onSuccess: ({ authUrl }) => {
+      const width = 500;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 3;
+      const win = window.open(
+        authUrl,
+        "microsoftOAuth",
+        `width=${width},height=${height},top=${top},left=${left}`,
+      );
+      setPopup(win);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const disconnect = useMutation({
+    mutationFn: () => disconnectOutlook(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Outlook kapcsolat bontva.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  useEffect(() => {
+    if (!popup) return;
+    const handler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "microsoftOutlookConnected") {
+        queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
+        queryClient.invalidateQueries({ queryKey: ["settings"] });
+        toast.success("Outlook sikeresen bekötve.");
+        setPopup(null);
+      }
+    };
+    window.addEventListener("message", handler);
+    const timer = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(timer);
+        window.removeEventListener("message", handler);
+        setPopup(null);
+        queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
+      }
+    }, 500);
+    return () => {
+      window.removeEventListener("message", handler);
+      clearInterval(timer);
+    };
+  }, [popup, queryClient]);
+
+  return (
+    <SectionCard
+      title="Outlook kapcsolat"
+      description="Emailek kiküldése és válaszok fogadása a saját Microsoft fiókodon keresztül."
+    >
+      <div className="flex flex-col gap-4 rounded-xl border border-border bg-secondary/30 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className={`h-2.5 w-2.5 rounded-full ${
+              status?.connected ? "bg-primary" : "bg-muted-foreground/50"
+            }`}
+          />
+          <div>
+            <p className="text-sm font-medium text-foreground">Microsoft Outlook</p>
+            <Badge variant="secondary" className="mt-1 font-normal">
+              {isLoading
+                ? "Betöltés…"
+                : status?.connected
+                  ? `Bekötve: ${status.accountEmail ?? "ismeretlen"}`
+                  : "Nincs bekötve"}
+            </Badge>
+          </div>
+        </div>
+        {status?.connected ? (
+          <Button
+            variant="outline"
+            disabled={disconnect.isPending}
+            onClick={() => disconnect.mutate()}
+          >
+            {disconnect.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Unlink className="mr-2 h-4 w-4" />
+            )}
+            Kapcsolat bontása
+          </Button>
+        ) : (
+          <Button disabled={connect.isPending} onClick={() => connect.mutate()}>
+            {connect.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="mr-2 h-4 w-4" />
+            )}
+            Bejelentkezés Microsofttal
+          </Button>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
