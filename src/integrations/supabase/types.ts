@@ -567,6 +567,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      schedule_cron_job: {
+        Args: { job_command: string; job_name: string; job_schedule: string }
+        Returns: number
+      }
+      unschedule_cron_job: { Args: { job_name: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user" | "viewer"
