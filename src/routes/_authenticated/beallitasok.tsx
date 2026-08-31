@@ -143,6 +143,7 @@ function SettingsPage() {
   const [openaiKey, setOpenaiKey] = useState("");
   const [anthropicKey, setAnthropicKey] = useState("");
   const [aiProvider, setAiProvider] = useState<"openai" | "anthropic">("anthropic");
+  const [aiBudget, setAiBudget] = useState("");
   const [dailyLimit, setDailyLimit] = useState(30);
   const [windowStart, setWindowStart] = useState("09:00");
   const [windowEnd, setWindowEnd] = useState("16:00");
