@@ -358,7 +358,6 @@ function SettingsPage() {
 
 function OutlookSection() {
   const queryClient = useQueryClient();
-  const [popup, setPopup] = useState<Window | null>(null);
 
   const { data: status, isLoading } = useQuery({
     queryKey: ["outlook-status"],
@@ -368,16 +367,7 @@ function OutlookSection() {
   const connect = useMutation({
     mutationFn: () => startOutlookAuth(),
     onSuccess: ({ authUrl }) => {
-      const width = 500;
-      const height = 700;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 3;
-      const win = window.open(
-        authUrl,
-        "microsoftOAuth",
-        `width=${width},height=${height},top=${top},left=${left}`,
-      );
-      setPopup(win);
+      window.location.href = authUrl;
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -398,32 +388,29 @@ function OutlookSection() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-
   useEffect(() => {
-    if (!popup) return;
-    const handler = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type === "microsoftOutlookConnected") {
-        queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
-        queryClient.invalidateQueries({ queryKey: ["settings"] });
-        toast.success("Outlook sikeresen bekötve.");
-        setPopup(null);
-      }
-    };
-    window.addEventListener("message", handler);
-    const timer = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(timer);
-        window.removeEventListener("message", handler);
-        setPopup(null);
-        queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
-      }
-    }, 500);
-    return () => {
-      window.removeEventListener("message", handler);
-      clearInterval(timer);
-    };
-  }, [popup, queryClient]);
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("outlook");
+    if (!result) return;
+
+    if (result === "connected") {
+      toast.success("Outlook sikeresen bekötve.");
+      queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    } else if (result === "error") {
+      toast.error(params.get("message") ?? "Az Outlook bekötése nem sikerült.");
+    }
+
+    params.delete("outlook");
+    params.delete("message");
+    const query = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + (query ? `?${query}` : ""),
+    );
+  }, [queryClient]);
+
 
   return (
     <SectionCard
