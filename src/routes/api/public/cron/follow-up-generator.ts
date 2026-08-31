@@ -48,10 +48,11 @@ export const Route = createFileRoute("/api/public/cron/follow-up-generator")({
           // Eligible companies: no response yet and not opted out
           const { data: companies, error: companiesError } = await supabaseAdmin
             .from("companies")
-            .select("id, name")
+            .select("id, name, follow_up_paused_until")
             .eq("organization_id", org.organization_id)
             .eq("opt_out", false)
-            .eq("status", "nincs_valasz");
+            .eq("status", "nincs_valasz")
+            .or(`follow_up_paused_until.is.null,follow_up_paused_until.lte.${new Date().toISOString()}`);
           if (companiesError) {
             return Response.json({ success: false, error: companiesError.message }, { status: 500 });
           }
