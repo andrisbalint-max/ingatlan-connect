@@ -144,6 +144,8 @@ function SettingsPage() {
     if (!settings) return;
     setHunterKey(settings.hunter_api_key ?? "");
     setOpenaiKey(settings.openai_api_key ?? "");
+    setAnthropicKey(settings.anthropic_api_key ?? "");
+    setAiProvider(settings.preferred_ai_provider === "openai" ? "openai" : "anthropic");
     setDailyLimit(settings.daily_email_limit ?? 30);
     setWindowStart(toTimeInput(settings.send_window_start));
     setWindowEnd(toTimeInput(settings.send_window_end));
