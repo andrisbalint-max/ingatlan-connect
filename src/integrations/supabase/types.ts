@@ -155,8 +155,10 @@ export type Database = {
           created_at: string
           follow_up_number: number
           id: string
+          last_error: string | null
           organization_id: string
           scheduled_for: string | null
+          send_attempts: number
           sent_at: string | null
           status: Database["public"]["Enums"]["email_status"]
           subject: string | null
@@ -171,8 +173,10 @@ export type Database = {
           created_at?: string
           follow_up_number?: number
           id?: string
+          last_error?: string | null
           organization_id: string
           scheduled_for?: string | null
+          send_attempts?: number
           sent_at?: string | null
           status?: Database["public"]["Enums"]["email_status"]
           subject?: string | null
@@ -187,8 +191,10 @@ export type Database = {
           created_at?: string
           follow_up_number?: number
           id?: string
+          last_error?: string | null
           organization_id?: string
           scheduled_for?: string | null
+          send_attempts?: number
           sent_at?: string | null
           status?: Database["public"]["Enums"]["email_status"]
           subject?: string | null
@@ -278,6 +284,41 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      outlook_connections: {
+        Row: {
+          account_email: string
+          created_at: string
+          id: string
+          organization_id: string
+          refresh_token_ciphertext: string
+          updated_at: string
+        }
+        Insert: {
+          account_email: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          refresh_token_ciphertext: string
+          updated_at?: string
+        }
+        Update: {
+          account_email?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          refresh_token_ciphertext?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outlook_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
