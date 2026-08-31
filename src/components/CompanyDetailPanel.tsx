@@ -43,6 +43,23 @@ interface ContactRow {
   position: string | null;
 }
 
+type ResponseCategory = "erdeklodes" | "talalkozo" | "elutasitas" | "kerdes" | "autovalasz";
+
+interface ResponseRow {
+  id: string;
+  received_at: string;
+  category: ResponseCategory | null;
+  raw_text: string | null;
+}
+
+const CATEGORY_LABELS: Record<ResponseCategory, { label: string; className: string }> = {
+  erdeklodes: { label: "Érdeklődés", className: "bg-primary/10 text-primary" },
+  talalkozo: { label: "Találkozó", className: "bg-emerald-100 text-emerald-700" },
+  elutasitas: { label: "Elutasítás", className: "bg-rose-100 text-rose-700" },
+  kerdes: { label: "Kérdés", className: "bg-amber-100 text-amber-700" },
+  autovalasz: { label: "Automatikus válasz", className: "bg-muted text-muted-foreground" },
+};
+
 const emptyContact = { name: "", email: "", phone: "", position: "" };
 
 export function CompanyDetailPanel({
