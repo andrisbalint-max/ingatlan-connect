@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { hunterSearch } from "@/lib/hunter.functions";
-import { matchProjectCompanies, generateProjectOutreach } from "@/lib/project-companies.functions";
+import { generateProjectOutreach } from "@/lib/project-companies.functions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
