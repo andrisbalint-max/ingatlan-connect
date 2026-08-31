@@ -9,6 +9,7 @@ import {
   Loader2,
   Search,
   Sparkles,
+  Trash2,
   UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -39,6 +40,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/talalt-cegek")({
   head: () => ({
@@ -82,6 +91,10 @@ function FoundCompanies() {
   const [notice, setNotice] = useState<string | null>(null);
   const [newCategoryFor, setNewCategoryFor] = useState<string | null>(null);
   const [newCategoryValue, setNewCategoryValue] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ProspectRow | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  const isAdmin = profile?.role === "admin";
 
   const { data: config } = useQuery({ queryKey: ["opten-config"], queryFn: () => getOptenConfig() });
 
@@ -227,6 +240,23 @@ function FoundCompanies() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const deleteProspects = useMutation({
+    mutationFn: async ({ ids }: { ids: string[] }) => {
+      const { error } = await supabase.from("opten_prospects").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["opten-prospects-all"] });
+      queryClient.invalidateQueries({ queryKey: ["project-opten-matches-all"] });
+      setSelected(new Set());
+      setDeleteTarget(null);
+      setBulkDeleteOpen(false);
+      toast.success(`${count} cég törölve.`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return (
     <div>
       <PageHeader
@@ -284,6 +314,20 @@ function FoundCompanies() {
           )}
           Keresés Hunterrel
         </Button>
+        {isAdmin && (
+          <Button
+            variant="outline"
+            onClick={() => setBulkDeleteOpen(true)}
+            disabled={selected.size === 0 || deleteProspects.isPending}
+          >
+            {deleteProspects.isPending ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-2 size-4" strokeWidth={1.5} />
+            )}
+            Kiválasztottak törlése
+          </Button>
+        )}
         {progress && (
           <span className="text-sm text-muted-foreground">
             {progress.done}/{progress.total} cég feldolgozva
@@ -361,22 +405,35 @@ function FoundCompanies() {
                               className="mt-1"
                             />
                             <div className="min-w-0 flex-1 space-y-1.5">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-medium text-foreground">
-                                  {row.company_name}
-                                </p>
-                                <span
-                                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                    HUNTER_STATUS_STYLES[row.hunter_status] ??
-                                    "bg-muted text-muted-foreground"
-                                  }`}
-                                >
-                                  {HUNTER_STATUS_LABELS[row.hunter_status] ?? row.hunter_status}
-                                </span>
-                                {row.promoted_to_crm && (
-                                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                                    CRM-ben
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-sm font-medium text-foreground">
+                                    {row.company_name}
+                                  </p>
+                                  <span
+                                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                      HUNTER_STATUS_STYLES[row.hunter_status] ??
+                                      "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    {HUNTER_STATUS_LABELS[row.hunter_status] ?? row.hunter_status}
                                   </span>
+                                  {row.promoted_to_crm && (
+                                    <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                                      CRM-ben
+                                    </span>
+                                  )}
+                                </div>
+                                {isAdmin && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => setDeleteTarget(row)}
+                                    aria-label={`${row.company_name} törlése`}
+                                  >
+                                    <Trash2 className="size-4" strokeWidth={1.5} />
+                                  </Button>
                                 )}
                               </div>
 
@@ -531,6 +588,60 @@ function FoundCompanies() {
           })}
         </div>
       )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cég törlése</DialogTitle>
+            <DialogDescription>
+              Biztosan törlöd a(z) <strong>{deleteTarget?.company_name}</strong> céget az
+              adatbázisból? Ez minden projektből eltávolítja a hozzá tartozó javaslatokat is.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Mégse
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && deleteProspects.mutate({ ids: [deleteTarget.id] })}
+              disabled={deleteProspects.isPending}
+            >
+              {deleteProspects.isPending && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
+              Törlés
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Kiválasztott cégek törlése</DialogTitle>
+            <DialogDescription>
+              Biztosan törlöd a kiválasztott <strong>{selected.size}</strong> céget az
+              adatbázisból?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
+              Mégse
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteProspects.mutate({ ids: Array.from(selected) })}
+              disabled={selected.size === 0 || deleteProspects.isPending}
+            >
+              {deleteProspects.isPending && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
+              Törlés
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
