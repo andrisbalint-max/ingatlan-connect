@@ -1,10 +1,16 @@
-import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+
+// Derive a fixed 32-byte AES key from an arbitrary-length secret string.
+function derive(raw: string): Buffer {
+  return createHash("sha256").update(raw, "utf8").digest();
+}
 
 function key(): Buffer {
   const raw = process.env["OUTLOOK_TOKEN_ENC_KEY"];
   if (!raw) throw new Error("OUTLOOK_TOKEN_ENC_KEY is not set");
-  return Buffer.from(raw, "base64");
+  return derive(raw);
 }
+
 
 export function encryptRefreshToken(plaintext: string): string {
   const iv = randomBytes(12);
