@@ -21,6 +21,7 @@ import { Route as AuthenticatedProjektekRouteImport } from './routes/_authentica
 import { Route as AuthenticatedRiportokRouteImport } from './routes/_authenticated/riportok'
 import { Route as ApiPublicCronEmailSchedulerRouteImport } from './routes/api/public/cron/email-scheduler'
 import { Route as ApiPublicCronEmailSenderRouteImport } from './routes/api/public/cron/email-sender'
+import { Route as ApiPublicCronFollowUpGeneratorRouteImport } from './routes/api/public/cron/follow-up-generator'
 import { Route as ApiPublicAuthMicrosoftCallbackRouteImport } from './routes/api/public/auth/microsoft/callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -86,6 +87,12 @@ const ApiPublicCronEmailSenderRoute =
     path: '/api/public/cron/email-sender',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronFollowUpGeneratorRoute =
+  ApiPublicCronFollowUpGeneratorRouteImport.update({
+    id: '/api/public/cron/follow-up-generator',
+    path: '/api/public/cron/follow-up-generator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAuthMicrosoftCallbackRoute =
   ApiPublicAuthMicrosoftCallbackRouteImport.update({
     id: '/api/public/auth/microsoft/callback',
@@ -105,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/riportok': typeof AuthenticatedRiportokRoute
   '/api/public/cron/email-scheduler': typeof ApiPublicCronEmailSchedulerRoute
   '/api/public/cron/email-sender': typeof ApiPublicCronEmailSenderRoute
+  '/api/public/cron/follow-up-generator': typeof ApiPublicCronFollowUpGeneratorRoute
   '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -119,6 +127,7 @@ export interface FileRoutesByTo {
   '/riportok': typeof AuthenticatedRiportokRoute
   '/api/public/cron/email-scheduler': typeof ApiPublicCronEmailSchedulerRoute
   '/api/public/cron/email-sender': typeof ApiPublicCronEmailSenderRoute
+  '/api/public/cron/follow-up-generator': typeof ApiPublicCronFollowUpGeneratorRoute
   '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRoutesById {
@@ -135,6 +144,7 @@ export interface FileRoutesById {
   '/_authenticated/riportok': typeof AuthenticatedRiportokRoute
   '/api/public/cron/email-scheduler': typeof ApiPublicCronEmailSchedulerRoute
   '/api/public/cron/email-sender': typeof ApiPublicCronEmailSenderRoute
+  '/api/public/cron/follow-up-generator': typeof ApiPublicCronFollowUpGeneratorRoute
   '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRouteTypes {
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/riportok'
     | '/api/public/cron/email-scheduler'
     | '/api/public/cron/email-sender'
+    | '/api/public/cron/follow-up-generator'
     | '/api/public/auth/microsoft/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -165,6 +176,7 @@ export interface FileRouteTypes {
     | '/riportok'
     | '/api/public/cron/email-scheduler'
     | '/api/public/cron/email-sender'
+    | '/api/public/cron/follow-up-generator'
     | '/api/public/auth/microsoft/callback'
   id:
     | '__root__'
@@ -180,6 +192,7 @@ export interface FileRouteTypes {
     | '/_authenticated/riportok'
     | '/api/public/cron/email-scheduler'
     | '/api/public/cron/email-sender'
+    | '/api/public/cron/follow-up-generator'
     | '/api/public/auth/microsoft/callback'
   fileRoutesById: FileRoutesById
 }
@@ -189,6 +202,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiPublicCronEmailSchedulerRoute: typeof ApiPublicCronEmailSchedulerRoute
   ApiPublicCronEmailSenderRoute: typeof ApiPublicCronEmailSenderRoute
+  ApiPublicCronFollowUpGeneratorRoute: typeof ApiPublicCronFollowUpGeneratorRoute
   ApiPublicAuthMicrosoftCallbackRoute: typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 
@@ -278,6 +292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronEmailSenderRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/follow-up-generator': {
+      id: '/api/public/cron/follow-up-generator'
+      path: '/api/public/cron/follow-up-generator'
+      fullPath: '/api/public/cron/follow-up-generator'
+      preLoaderRoute: typeof ApiPublicCronFollowUpGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/auth/microsoft/callback': {
       id: '/api/public/auth/microsoft/callback'
       path: '/api/public/auth/microsoft/callback'
@@ -317,6 +338,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiPublicCronEmailSchedulerRoute: ApiPublicCronEmailSchedulerRoute,
   ApiPublicCronEmailSenderRoute: ApiPublicCronEmailSenderRoute,
+  ApiPublicCronFollowUpGeneratorRoute: ApiPublicCronFollowUpGeneratorRoute,
   ApiPublicAuthMicrosoftCallbackRoute: ApiPublicAuthMicrosoftCallbackRoute,
 }
 export const routeTree = rootRouteImport
