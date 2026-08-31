@@ -132,11 +132,11 @@ export const setupEmailCronJobs = createServerFn({ method: "POST" })
     ];
 
     for (const job of schedules) {
-      await supabaseAdmin.rpc("cron_unschedule", { job_name: job.name });
-      const { error } = await supabaseAdmin.rpc("cron_schedule", {
+      await supabaseAdmin.rpc("unschedule_cron_job", { job_name: job.name });
+      const { error } = await supabaseAdmin.rpc("schedule_cron_job", {
         job_name: job.name,
-        schedule: job.schedule,
-        command: `
+        job_schedule: job.schedule,
+        job_command: `
           select net.http_post(
             url:='${job.url}',
             headers:='{"Content-Type": "application/json", "Authorization": "Bearer ${cronSecret}"}'::jsonb,
@@ -146,6 +146,7 @@ export const setupEmailCronJobs = createServerFn({ method: "POST" })
       });
       if (error) throw error;
     }
+
 
     return { ok: true };
   });
