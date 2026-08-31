@@ -19,6 +19,7 @@ import { Route as AuthenticatedEmailSorRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedFelhasznalokRouteImport } from './routes/_authenticated/felhasznalok'
 import { Route as AuthenticatedProjektekRouteImport } from './routes/_authenticated/projektek'
 import { Route as AuthenticatedRiportokRouteImport } from './routes/_authenticated/riportok'
+import { Route as AuthenticatedTalaltCegekRouteImport } from './routes/_authenticated/talalt-cegek'
 import { Route as ApiPublicCronAiBudgetMonitorRouteImport } from './routes/api/public/cron/ai-budget-monitor'
 import { Route as ApiPublicCronEmailSchedulerRouteImport } from './routes/api/public/cron/email-scheduler'
 import { Route as ApiPublicCronEmailSenderRouteImport } from './routes/api/public/cron/email-sender'
@@ -79,6 +80,12 @@ const AuthenticatedRiportokRoute = AuthenticatedRiportokRouteImport.update({
   path: '/riportok',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTalaltCegekRoute =
+  AuthenticatedTalaltCegekRouteImport.update({
+    id: '/talalt-cegek',
+    path: '/talalt-cegek',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicCronAiBudgetMonitorRoute =
   ApiPublicCronAiBudgetMonitorRouteImport.update({
     id: '/api/public/cron/ai-budget-monitor',
@@ -138,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
   '/projektek': typeof AuthenticatedProjektekRoute
   '/riportok': typeof AuthenticatedRiportokRoute
+  '/talalt-cegek': typeof AuthenticatedTalaltCegekRoute
   '/api/public/cron/ai-budget-monitor': typeof ApiPublicCronAiBudgetMonitorRoute
   '/api/public/cron/email-scheduler': typeof ApiPublicCronEmailSchedulerRoute
   '/api/public/cron/email-sender': typeof ApiPublicCronEmailSenderRoute
@@ -157,6 +165,7 @@ export interface FileRoutesByTo {
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
   '/projektek': typeof AuthenticatedProjektekRoute
   '/riportok': typeof AuthenticatedRiportokRoute
+  '/talalt-cegek': typeof AuthenticatedTalaltCegekRoute
   '/api/public/cron/ai-budget-monitor': typeof ApiPublicCronAiBudgetMonitorRoute
   '/api/public/cron/email-scheduler': typeof ApiPublicCronEmailSchedulerRoute
   '/api/public/cron/email-sender': typeof ApiPublicCronEmailSenderRoute
@@ -178,6 +187,7 @@ export interface FileRoutesById {
   '/_authenticated/felhasznalok': typeof AuthenticatedFelhasznalokRoute
   '/_authenticated/projektek': typeof AuthenticatedProjektekRoute
   '/_authenticated/riportok': typeof AuthenticatedRiportokRoute
+  '/_authenticated/talalt-cegek': typeof AuthenticatedTalaltCegekRoute
   '/api/public/cron/ai-budget-monitor': typeof ApiPublicCronAiBudgetMonitorRoute
   '/api/public/cron/email-scheduler': typeof ApiPublicCronEmailSchedulerRoute
   '/api/public/cron/email-sender': typeof ApiPublicCronEmailSenderRoute
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/felhasznalok'
     | '/projektek'
     | '/riportok'
+    | '/talalt-cegek'
     | '/api/public/cron/ai-budget-monitor'
     | '/api/public/cron/email-scheduler'
     | '/api/public/cron/email-sender'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/felhasznalok'
     | '/projektek'
     | '/riportok'
+    | '/talalt-cegek'
     | '/api/public/cron/ai-budget-monitor'
     | '/api/public/cron/email-scheduler'
     | '/api/public/cron/email-sender'
@@ -238,6 +250,7 @@ export interface FileRouteTypes {
     | '/_authenticated/felhasznalok'
     | '/_authenticated/projektek'
     | '/_authenticated/riportok'
+    | '/_authenticated/talalt-cegek'
     | '/api/public/cron/ai-budget-monitor'
     | '/api/public/cron/email-scheduler'
     | '/api/public/cron/email-sender'
@@ -334,6 +347,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRiportokRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/talalt-cegek': {
+      id: '/_authenticated/talalt-cegek'
+      path: '/talalt-cegek'
+      fullPath: '/talalt-cegek'
+      preLoaderRoute: typeof AuthenticatedTalaltCegekRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/cron/ai-budget-monitor': {
       id: '/api/public/cron/ai-budget-monitor'
       path: '/api/public/cron/ai-budget-monitor'
@@ -401,6 +421,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFelhasznalokRoute: typeof AuthenticatedFelhasznalokRoute
   AuthenticatedProjektekRoute: typeof AuthenticatedProjektekRoute
   AuthenticatedRiportokRoute: typeof AuthenticatedRiportokRoute
+  AuthenticatedTalaltCegekRoute: typeof AuthenticatedTalaltCegekRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -411,6 +432,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFelhasznalokRoute: AuthenticatedFelhasznalokRoute,
   AuthenticatedProjektekRoute: AuthenticatedProjektekRoute,
   AuthenticatedRiportokRoute: AuthenticatedRiportokRoute,
+  AuthenticatedTalaltCegekRoute: AuthenticatedTalaltCegekRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
