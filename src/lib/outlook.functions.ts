@@ -144,6 +144,16 @@ export const setupEmailCronJobs = createServerFn({ method: "POST" })
         schedule: "*/15 * * * *",
         url: `${publicUrl}/api/public/cron/response-classifier`,
       },
+      {
+        name: "ai-budget-monitor-daily",
+        schedule: "10 5 * * *",
+        url: `${publicUrl}/api/public/cron/ai-budget-monitor`,
+      },
+      {
+        name: "market-monitor-daily",
+        schedule: "45 5 * * *",
+        url: `${publicUrl}/api/public/cron/market-monitor`,
+      },
     ];
 
 

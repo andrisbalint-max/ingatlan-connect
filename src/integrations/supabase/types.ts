@@ -162,6 +162,7 @@ export type Database = {
           id: string
           last_error: string | null
           organization_id: string
+          project_id: string | null
           scheduled_for: string | null
           send_attempts: number
           sent_at: string | null
@@ -182,6 +183,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           organization_id: string
+          project_id?: string | null
           scheduled_for?: string | null
           send_attempts?: number
           sent_at?: string | null
@@ -202,6 +204,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           organization_id?: string
+          project_id?: string | null
           scheduled_for?: string | null
           send_attempts?: number
           sent_at?: string | null
@@ -230,6 +233,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "emails_queue_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       market_reports: {
@@ -238,8 +248,10 @@ export type Database = {
           id: string
           key_data: Json
           organization_id: string
+          pdf_path: string | null
           report_date: string | null
           source_name: string | null
+          source_url: string | null
           summary: string | null
           title: string
           year: number | null
@@ -249,8 +261,10 @@ export type Database = {
           id?: string
           key_data?: Json
           organization_id: string
+          pdf_path?: string | null
           report_date?: string | null
           source_name?: string | null
+          source_url?: string | null
           summary?: string | null
           title: string
           year?: number | null
@@ -260,8 +274,10 @@ export type Database = {
           id?: string
           key_data?: Json
           organization_id?: string
+          pdf_path?: string | null
           report_date?: string | null
           source_name?: string | null
+          source_url?: string | null
           summary?: string | null
           title?: string
           year?: number | null
@@ -367,6 +383,61 @@ export type Database = {
           },
         ]
       }
+      project_companies: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          match_reason: string | null
+          organization_id: string
+          project_id: string
+          source: string
+          status: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          match_reason?: string | null
+          organization_id: string
+          project_id: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          match_reason?: string | null
+          organization_id?: string
+          project_id?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_companies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_companies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_files: {
         Row: {
           ai_summary: string | null
@@ -421,6 +492,7 @@ export type Database = {
           organization_id: string
           size_sqm: number | null
           status: string
+          target_audience: string | null
           title: string
         }
         Insert: {
@@ -431,6 +503,7 @@ export type Database = {
           organization_id: string
           size_sqm?: number | null
           status?: string
+          target_audience?: string | null
           title: string
         }
         Update: {
@@ -441,6 +514,7 @@ export type Database = {
           organization_id?: string
           size_sqm?: number | null
           status?: string
+          target_audience?: string | null
           title?: string
         }
         Relationships: [
@@ -509,12 +583,16 @@ export type Database = {
       }
       settings: {
         Row: {
+          ai_budget_warning_sent_at: string | null
+          ai_provider_out_of_credit: boolean
+          ai_usage_estimated_usd: number
           anthropic_api_key: string | null
           created_at: string
           daily_email_limit: number
           follow_up_schedule: Json
           hunter_api_key: string | null
           id: string
+          monthly_ai_budget_usd: number | null
           openai_api_key: string | null
           organization_id: string
           outlook_connected: boolean
@@ -523,12 +601,16 @@ export type Database = {
           send_window_start: string
         }
         Insert: {
+          ai_budget_warning_sent_at?: string | null
+          ai_provider_out_of_credit?: boolean
+          ai_usage_estimated_usd?: number
           anthropic_api_key?: string | null
           created_at?: string
           daily_email_limit?: number
           follow_up_schedule?: Json
           hunter_api_key?: string | null
           id?: string
+          monthly_ai_budget_usd?: number | null
           openai_api_key?: string | null
           organization_id: string
           outlook_connected?: boolean
@@ -537,12 +619,16 @@ export type Database = {
           send_window_start?: string
         }
         Update: {
+          ai_budget_warning_sent_at?: string | null
+          ai_provider_out_of_credit?: boolean
+          ai_usage_estimated_usd?: number
           anthropic_api_key?: string | null
           created_at?: string
           daily_email_limit?: number
           follow_up_schedule?: Json
           hunter_api_key?: string | null
           id?: string
+          monthly_ai_budget_usd?: number | null
           openai_api_key?: string | null
           organization_id?: string
           outlook_connected?: boolean

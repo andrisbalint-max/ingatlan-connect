@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Eye, EyeOff, Plus, X, Mail, Loader2, Unlink } from "lucide-react";
+import { Eye, EyeOff, Plus, X, Mail, Loader2, Unlink, AlertTriangle } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -48,7 +48,15 @@ interface Settings {
   send_window_start: string;
   send_window_end: string;
   follow_up_schedule: number[] | null;
+  monthly_ai_budget_usd: number | null;
+  ai_usage_estimated_usd: number | null;
+  ai_provider_out_of_credit: boolean;
 }
+
+const PROVIDER_LABELS: Record<string, string> = {
+  anthropic: "Claude",
+  openai: "OpenAI",
+};
 
 function toTimeInput(value: string | null | undefined) {
   if (!value) return "09:00";
@@ -135,6 +143,7 @@ function SettingsPage() {
   const [openaiKey, setOpenaiKey] = useState("");
   const [anthropicKey, setAnthropicKey] = useState("");
   const [aiProvider, setAiProvider] = useState<"openai" | "anthropic">("anthropic");
+  const [aiBudget, setAiBudget] = useState("");
   const [dailyLimit, setDailyLimit] = useState(30);
   const [windowStart, setWindowStart] = useState("09:00");
   const [windowEnd, setWindowEnd] = useState("16:00");
@@ -146,6 +155,9 @@ function SettingsPage() {
     setOpenaiKey(settings.openai_api_key ?? "");
     setAnthropicKey(settings.anthropic_api_key ?? "");
     setAiProvider(settings.preferred_ai_provider === "openai" ? "openai" : "anthropic");
+    setAiBudget(
+      settings.monthly_ai_budget_usd != null ? String(settings.monthly_ai_budget_usd) : "",
+    );
     setDailyLimit(settings.daily_email_limit ?? 30);
     setWindowStart(toTimeInput(settings.send_window_start));
     setWindowEnd(toTimeInput(settings.send_window_end));
@@ -191,6 +203,16 @@ function SettingsPage() {
         title="Beállítások"
         description="Integrációk, email küldési szabályok és kapcsolatok kezelése."
       />
+
+      {settings?.ai_provider_out_of_credit && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" strokeWidth={1.5} />
+          <p className="text-sm font-medium text-destructive">
+            Elfogyott a(z) {PROVIDER_LABELS[settings.preferred_ai_provider] ?? settings.preferred_ai_provider}{" "}
+            AI-kredit — az automatikus follow-up/riport/projekt-funkciók szünetelnek, amíg fel nem töltöd.
+          </p>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-6">
@@ -264,6 +286,28 @@ function SettingsPage() {
               </p>
             </div>
 
+            <div className="mt-6 max-w-md space-y-2">
+              <Label htmlFor="ai-budget">Havi AI-költségkeret (opcionális, USD)</Label>
+              <Input
+                id="ai-budget"
+                type="number"
+                min={0}
+                step="1"
+                inputMode="decimal"
+                placeholder="Nincs megadva"
+                value={aiBudget}
+                onChange={(e) => setAiBudget(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Csak figyelmeztetéshez használjuk — állíts be emellett tényleges költési korlátot is
+                közvetlenül az OpenAI/Anthropic számlázásában.
+              </p>
+              <p className="text-sm font-medium text-foreground">
+                Becsült ezhavi AI-költés: $
+                {Number(settings?.ai_usage_estimated_usd ?? 0).toFixed(2)}
+              </p>
+            </div>
+
             <div className="mt-6 flex justify-end">
               <Button
                 onClick={() =>
@@ -272,6 +316,10 @@ function SettingsPage() {
                     openai_api_key: openaiKey.trim() || null,
                     anthropic_api_key: anthropicKey.trim() || null,
                     preferred_ai_provider: aiProvider,
+                    monthly_ai_budget_usd:
+                      aiBudget.trim() && Number.isFinite(Number(aiBudget.replace(",", ".")))
+                        ? Number(aiBudget.replace(",", "."))
+                        : null,
                   })
                 }
                 disabled={save.isPending}

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, FolderKanban, Inbox, Send, Sparkles } from "lucide-react";
+import { AlertTriangle, Clock, FolderKanban, Inbox, Send, Sparkles, X } from "lucide-react";
+import { getAiBudgetStatus } from "@/lib/ai-budget.functions";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/AppShell";
@@ -70,6 +72,10 @@ function Dashboard() {
   return (
     <div>
       <PageHeader title="Áttekintés" description="A mai nap legfontosabb mutatói." />
+
+      <AiBudgetBanners />
+
+
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
@@ -185,5 +191,54 @@ function NewResponses() {
         ))}
       </ul>
     </section>
+  );
+}
+
+const AI_PROVIDER_LABELS: Record<string, string> = {
+  anthropic: "Claude",
+  openai: "OpenAI",
+};
+
+/** AI credit / budget banners (fed by the ai-budget-monitor cron + AI helper). */
+function AiBudgetBanners() {
+  const [budgetDismissed, setBudgetDismissed] = useState(false);
+  const { data: status } = useQuery({
+    queryKey: ["ai-budget-status"],
+    queryFn: () => getAiBudgetStatus(),
+    staleTime: 60_000,
+  });
+
+  if (!status) return null;
+
+  return (
+    <div className="mb-6 space-y-3">
+      {status.outOfCredit && (
+        <div className="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" strokeWidth={1.5} />
+          <p className="text-sm font-medium text-destructive">
+            Elfogyott a(z) {AI_PROVIDER_LABELS[status.provider ?? ""] ?? "AI"} AI-kredit — az
+            automatikus follow-up/riport/projekt-funkciók szünetelnek, amíg fel nem töltöd.
+          </p>
+        </div>
+      )}
+
+      {status.budgetWarning && !budgetDismissed && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" strokeWidth={1.5} />
+          <p className="flex-1 text-sm text-amber-900">
+            Az AI-használat becsült költsége elérte a havi keret 80%-át — töltsd fel időben az
+            OpenAI/Anthropic egyenleget, hogy ne álljon meg az automatizmus.
+          </p>
+          <button
+            type="button"
+            aria-label="Bezárás"
+            onClick={() => setBudgetDismissed(true)}
+            className="rounded-md p-1 text-amber-700 transition-colors hover:text-amber-900"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

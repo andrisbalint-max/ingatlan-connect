@@ -54,7 +54,14 @@ const STATUS_STYLES: Record<string, string> = {
   lezarva: "bg-rose-100 text-rose-700",
 };
 
-const emptyForm = { title: "", description: "", city: "", size_sqm: "", status: "aktiv" };
+const emptyForm = {
+  title: "",
+  description: "",
+  city: "",
+  size_sqm: "",
+  status: "aktiv",
+  target_audience: "",
+};
 
 function Projects() {
   const queryClient = useQueryClient();
@@ -69,7 +76,9 @@ function Projects() {
     queryFn: async (): Promise<ProjectRow[]> => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, organization_id, title, description, city, size_sqm, status, created_at")
+        .select(
+          "id, organization_id, title, description, city, size_sqm, status, target_audience, created_at",
+        )
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as ProjectRow[];
@@ -88,6 +97,7 @@ function Projects() {
         city: form.city.trim() || null,
         size_sqm: size !== null && Number.isFinite(size) ? size : null,
         status: form.status,
+        target_audience: form.target_audience.trim() || null,
       });
       if (error) throw error;
     },
@@ -208,6 +218,16 @@ function Projects() {
                   onChange={(e) => setForm({ ...form, size_sqm: e.target.value })}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="audience">Célközönség / tevékenységi kör (opcionális)</Label>
+              <Textarea
+                id="audience"
+                rows={2}
+                value={form.target_audience}
+                onChange={(e) => setForm({ ...form, target_audience: e.target.value })}
+                placeholder="Pl. logisztikai szolgáltatók, könnyűipari gyártók…"
+              />
             </div>
             <div className="space-y-2">
               <Label>Státusz</Label>
