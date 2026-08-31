@@ -481,6 +481,48 @@ export function CompanyDetailPanel({
                 </p>
               </div>
             </section>
+
+            <Separator />
+
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Válaszok</h3>
+              {responsesLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Betöltés…
+                </div>
+              ) : !responses || responses.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
+                  <Mail className="mx-auto mb-2 size-5 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Ehhez a céghez még nem érkezett válasz.</p>
+                </div>
+              ) : (
+                <ol className="space-y-3 border-l border-border pl-4">
+                  {responses.map((response) => {
+                    const meta = response.category ? CATEGORY_LABELS[response.category] : null;
+                    return (
+                      <li key={response.id} className="relative">
+                        <span className="absolute -left-[21px] top-2 size-2 rounded-full bg-primary" />
+                        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(response.received_at).toLocaleString("hu-HU")}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-medium ${meta?.className ?? "bg-muted text-muted-foreground"}`}
+                            >
+                              {meta?.label ?? "Feldolgozás alatt"}
+                            </span>
+                          </div>
+                          <p className="whitespace-pre-wrap text-sm text-foreground">
+                            {response.raw_text ?? "—"}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </section>
           </div>
         )}
       </SheetContent>
