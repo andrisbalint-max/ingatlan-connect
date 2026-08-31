@@ -10,32 +10,31 @@ export interface RevenueBand {
   max: number | null;
 }
 
-export interface TeaorSuggestion {
-  code: string;
-  description: string;
-}
+/** header name in the uploaded Excel/CSV -> internal prospect field (or "skip") */
+export type ExcelColumnMapping = Record<string, string>;
 
 export interface OptenConfig {
-  hasApiKey: boolean;
   bands: RevenueBand[];
+  columnMapping: ExcelColumnMapping | null;
 }
 
-export interface CriteriaSuggestionResult {
-  status: AiCallStatus | "no_bands";
+export interface CategorizeResult {
+  status: AiCallStatus | "nothing_to_do";
   message?: string | undefined;
-  teaorSuggestions?: TeaorSuggestion[] | undefined;
-  revenueBandLabel?: string | undefined;
-  bands?: RevenueBand[] | undefined;
+  categorized?: number | undefined;
 }
 
-export interface OptenSearchResult {
-  status: "ok" | "no_api_key" | "no_criteria" | "not_implemented" | "error";
+export interface CategorySuggestionResult {
+  status: AiCallStatus | "no_categories";
   message?: string | undefined;
-  created?: number | undefined;
+  categories?: string[] | undefined;
 }
 
-const CRITERIA_SYSTEM_PROMPT =
-  'Ipari ingatlan B2B bróker asszisztens vagy. A projekt leírása és célközönsége alapján javasolj magyar TEÁOR (NACE Rev.2 magyar) kódokat a legvalószínűbb bérlő/vevő iparágakhoz, és válaszd ki a MEGADOTT árbevétel-sáv címkék közül a legjobban illeszkedőt. Soha ne találj ki olyan sávot, ami nincs a listában. Válaszod KIZÁRÓLAG JSON: {"teaor_suggestions":[{"code":"52.10","description":"rövid magyar tevékenységleírás"}],"revenue_band_label":"pontosan a listából"}. Legfeljebb 3 TEÁOR javaslat.';
+const CATEGORIZER_SYSTEM_PROMPT =
+  'Ipari ingatlan B2B bróker asszisztens vagy. Cégeket kell tevékenységi kategóriákba sorolnod magyarul. Használd újra a MEGADOTT létező kategóriákat, ha a cég valóban beleillik; csak akkor javasolj új, rövid magyar kategórianevet (pl. "Logisztika és raktározás", "Élelmiszeripar", "Gépgyártás"), ha egyik létező sem illik. A cél egy kicsi, stabil, újrahasznosítható kategóriakészlet — soha ne készíts cégenként külön kategóriát. Válaszod KIZÁRÓLAG JSON: {"assignments":[{"company_name":"pontosan a megadott név","activity_category":"kategória"}]}';
+
+const PROJECT_CATEGORY_SYSTEM_PROMPT =
+  'Ipari ingatlan B2B bróker asszisztens vagy. A projekt leírása és célközönsége alapján válaszd ki a MEGADOTT tevékenységi kategóriák közül azokat, amelyek relevánsak a projektre. KIZÁRÓLAG a megadott listából választhatsz, új kategóriát soha ne találj ki. Válaszod KIZÁRÓLAG JSON: {"categories":["pontosan a listából"]}';
 
 function parseJsonBlock(text: string): unknown {
   const cleaned = text
@@ -61,8 +60,9 @@ function normalizeBands(value: unknown): RevenueBand[] {
 }
 
 /**
- * Exposes the organization's Opten configuration to non-admin users too
- * (the settings table itself is admin-only via RLS), without ever leaking the key.
+ * Exposes the organization's Opten export settings (revenue bands + remembered
+ * Excel column mapping) to non-admin users too — the settings table itself is
+ * admin-only via RLS.
  */
 export const getOptenConfig = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -73,32 +73,184 @@ export const getOptenConfig = createServerFn({ method: "GET" })
       .select("organization_id")
       .eq("auth_user_id", context.userId)
       .maybeSingle();
-    if (!profile) return { hasApiKey: false, bands: [] };
+    if (!profile) return { bands: [], columnMapping: null };
 
     const { data: settings } = await supabaseAdmin
       .from("settings")
-      .select("opten_api_key, opten_revenue_bands")
+      .select("opten_revenue_bands, opten_excel_column_mapping")
       .eq("organization_id", profile.organization_id)
       .maybeSingle();
 
     return {
-      hasApiKey: Boolean((settings?.opten_api_key ?? "").trim()),
       bands: normalizeBands(settings?.opten_revenue_bands),
+      columnMapping: (settings?.opten_excel_column_mapping ?? null) as ExcelColumnMapping | null,
     };
   });
 
+/** Persists the confirmed import column mapping (admin-only table, so server-side). */
+export const saveExcelColumnMapping = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { mapping: ExcelColumnMapping }) => {
+    if (!input?.mapping || typeof input.mapping !== "object") throw new Error("mapping szükséges");
+    return { mapping: input.mapping };
+  })
+  .handler(async ({ data, context }): Promise<{ status: "ok" }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+    if (!profile) return { status: "ok" };
+
+    await supabaseAdmin
+      .from("settings")
+      .update({ opten_excel_column_mapping: data.mapping as never })
+      .eq("organization_id", profile.organization_id);
+
+    return { status: "ok" };
+  });
+
 /**
- * AI suggestion for the Opten search criteria of a project: TEÁOR codes plus one
- * of the organization's configured revenue bands. Nothing is saved here — the
- * admin reviews and edits the suggestion, then saves it from the UI.
+ * "opten-prospect-categorizer" — assigns a normalized Hungarian activity
+ * category to every uncategorized prospect of the organization, in small
+ * batches to keep AI cost down. Existing categories are passed into the prompt
+ * so the model reuses them instead of inventing near-duplicates. Manually set
+ * categories are never touched (only rows with activity_category IS NULL).
  */
-export const suggestOptenCriteria = createServerFn({ method: "POST" })
+export const categorizeOptenProspects = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<CategorizeResult> => {
+    const { supabase } = context;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+    if (!profile) return { status: "error", message: "A profil nem található." };
+
+    const { data: pending, error: pendingError } = await supabase
+      .from("opten_prospects")
+      .select("id, company_name, teaor_code, teaor_description")
+      .is("activity_category", null)
+      .order("created_at", { ascending: true });
+    if (pendingError) throw pendingError;
+
+    if (!pending || pending.length === 0) {
+      return { status: "nothing_to_do", message: "Minden cég kategorizálva van.", categorized: 0 };
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: settings } = await supabaseAdmin
+      .from("settings")
+      .select("openai_api_key, anthropic_api_key, preferred_ai_provider")
+      .eq("organization_id", profile.organization_id)
+      .maybeSingle();
+
+    const { resolveAiProvider, generateText, isAiOutOfCreditError } = await import(
+      "@/server/ai-provider.server"
+    );
+    const resolved = resolveAiProvider(settings);
+    if (!resolved) return { status: "no_provider", message: "AI-szolgáltató nincs beállítva" };
+
+    const { data: categorized } = await supabase
+      .from("opten_prospects")
+      .select("activity_category")
+      .not("activity_category", "is", null);
+    const known = new Set(
+      (categorized ?? []).map((row) => row.activity_category!).filter(Boolean),
+    );
+
+    let updated = 0;
+    const BATCH = 20;
+    for (let index = 0; index < pending.length; index += BATCH) {
+      const batch = pending.slice(index, index + BATCH);
+      const userPrompt = [
+        "Létező kategóriák (ezeket használd újra, ha illik):",
+        known.size > 0 ? Array.from(known).map((c) => `- ${c}`).join("\n") : "- (még nincs)",
+        "",
+        "Cégek:",
+        ...batch.map((row) =>
+          [
+            `- ${row.company_name}`,
+            row.teaor_code ? `TEÁOR ${row.teaor_code}` : null,
+            row.teaor_description,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        ),
+      ].join("\n");
+
+      let text: string;
+      try {
+        const result = await generateText({
+          provider: resolved.provider,
+          apiKey: resolved.apiKey,
+          systemPrompt: CATEGORIZER_SYSTEM_PROMPT,
+          userPrompt,
+          organizationId: profile.organization_id,
+          maxTokens: 1500,
+        });
+        text = result.text;
+      } catch (err) {
+        if (isAiOutOfCreditError(err)) {
+          return {
+            status: "out_of_credit",
+            message: "Elfogyott az AI-kredit, próbáld később",
+            categorized: updated,
+          };
+        }
+        return {
+          status: "error",
+          message: err instanceof Error ? err.message : "Az AI hívás nem sikerült.",
+          categorized: updated,
+        };
+      }
+
+      let assignments: Array<{ company_name?: unknown; activity_category?: unknown }> = [];
+      try {
+        const parsed = parseJsonBlock(text) as { assignments?: unknown };
+        assignments = Array.isArray(parsed.assignments) ? (parsed.assignments as never[]) : [];
+      } catch {
+        continue;
+      }
+
+      for (const assignment of assignments) {
+        const name = String(assignment.company_name ?? "").trim();
+        const category = String(assignment.activity_category ?? "").trim();
+        if (!name || !category) continue;
+        const row = batch.find(
+          (item) => item.company_name.toLowerCase() === name.toLowerCase(),
+        );
+        if (!row) continue;
+        const { error: updateError } = await supabase
+          .from("opten_prospects")
+          .update({ activity_category: category })
+          .eq("id", row.id)
+          .is("activity_category", null);
+        if (!updateError) {
+          known.add(category);
+          updated += 1;
+        }
+      }
+    }
+
+    return { status: "ok", categorized: updated };
+  });
+
+/**
+ * AI suggestion for a project's relevant activity categories. The model may
+ * only pick from the categories that already exist in the organization's
+ * prospect database — new categories are created at import time only.
+ */
+export const suggestProjectCategories = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { projectId: string }) => {
     if (!input?.projectId) throw new Error("projectId szükséges");
     return { projectId: input.projectId };
   })
-  .handler(async ({ data, context }): Promise<CriteriaSuggestionResult> => {
+  .handler(async ({ data, context }): Promise<CategorySuggestionResult> => {
     const { supabase } = context;
 
     const { data: project, error: projectError } = await supabase
@@ -109,32 +261,34 @@ export const suggestOptenCriteria = createServerFn({ method: "POST" })
     if (projectError) throw projectError;
     if (!project) return { status: "error", message: "A projekt nem található." };
 
+    const { data: rows } = await supabase
+      .from("opten_prospects")
+      .select("activity_category")
+      .not("activity_category", "is", null);
+    const categories = Array.from(
+      new Set((rows ?? []).map((row) => row.activity_category!).filter(Boolean)),
+    );
+
+    if (categories.length === 0) {
+      return {
+        status: "no_categories",
+        message:
+          "Még nincs kategorizált cég — importálj és kategorizálj cégeket a Talált cégek oldalon.",
+      };
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: settings } = await supabaseAdmin
       .from("settings")
-      .select(
-        "openai_api_key, anthropic_api_key, preferred_ai_provider, opten_revenue_bands",
-      )
+      .select("openai_api_key, anthropic_api_key, preferred_ai_provider")
       .eq("organization_id", project.organization_id)
       .maybeSingle();
-
-    const bands = normalizeBands(settings?.opten_revenue_bands);
-    if (bands.length === 0) {
-      return {
-        status: "no_bands",
-        message:
-          "Még nincs beállítva árbevétel-sáv — add meg őket a Beállításokban (Opten kapcsolat), majd próbáld újra.",
-        bands: [],
-      };
-    }
 
     const { resolveAiProvider, generateText, isAiOutOfCreditError } = await import(
       "@/server/ai-provider.server"
     );
     const resolved = resolveAiProvider(settings);
-    if (!resolved) {
-      return { status: "no_provider", message: "AI-szolgáltató nincs beállítva", bands };
-    }
+    if (!resolved) return { status: "no_provider", message: "AI-szolgáltató nincs beállítva" };
 
     const userPrompt = [
       `Projekt: ${project.title}`,
@@ -143,8 +297,8 @@ export const suggestOptenCriteria = createServerFn({ method: "POST" })
       project.description ? `Leírás: ${project.description}` : null,
       project.target_audience ? `Célközönség: ${project.target_audience}` : null,
       "",
-      "Választható árbevétel-sáv címkék (csak ezek közül válassz egyet):",
-      ...bands.map((band) => `- ${band.label}`),
+      "Választható tevékenységi kategóriák (kizárólag ezek közül):",
+      ...categories.map((category) => `- ${category}`),
     ]
       .filter(Boolean)
       .join("\n");
@@ -154,160 +308,34 @@ export const suggestOptenCriteria = createServerFn({ method: "POST" })
       const result = await generateText({
         provider: resolved.provider,
         apiKey: resolved.apiKey,
-        systemPrompt: CRITERIA_SYSTEM_PROMPT,
+        systemPrompt: PROJECT_CATEGORY_SYSTEM_PROMPT,
         userPrompt,
         organizationId: project.organization_id,
-        maxTokens: 700,
+        maxTokens: 600,
       });
       text = result.text;
     } catch (err) {
       if (isAiOutOfCreditError(err)) {
-        return { status: "out_of_credit", message: "Elfogyott az AI-kredit, próbáld később", bands };
+        return { status: "out_of_credit", message: "Elfogyott az AI-kredit, próbáld később" };
       }
       return {
         status: "error",
         message: err instanceof Error ? err.message : "Az AI hívás nem sikerült.",
-        bands,
       };
     }
 
-    let parsed: { teaor_suggestions?: unknown; revenue_band_label?: unknown };
+    let picked: string[] = [];
     try {
-      parsed = parseJsonBlock(text) as typeof parsed;
+      const parsed = parseJsonBlock(text) as { categories?: unknown };
+      picked = Array.isArray(parsed.categories)
+        ? (parsed.categories as unknown[]).map((value) => String(value).trim())
+        : [];
     } catch {
-      return { status: "error", message: "Az AI válasza nem értelmezhető.", bands };
+      return { status: "error", message: "Az AI válasza nem értelmezhető." };
     }
-
-    const teaorSuggestions: TeaorSuggestion[] = Array.isArray(parsed.teaor_suggestions)
-      ? parsed.teaor_suggestions
-          .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object")
-          .slice(0, 3)
-          .map((row) => ({
-            code: String(row["code"] ?? "").trim(),
-            description: String(row["description"] ?? "").trim(),
-          }))
-          .filter((row) => row.code.length > 0 || row.description.length > 0)
-      : [];
-
-    const suggestedLabel = String(parsed.revenue_band_label ?? "").trim();
-    const validLabel = bands.find((band) => band.label === suggestedLabel)?.label;
 
     return {
       status: "ok",
-      teaorSuggestions,
-      revenueBandLabel: validLabel ?? undefined,
-      bands,
+      categories: picked.filter((category) => categories.includes(category)),
     };
-  });
-
-/**
- * "opten-search" — PLACEHOLDER.
- *
- * Opten's real technical integration is not confirmed yet (the auth method could
- * be a SOAP client certificate, a username/password pair, or a simple API key),
- * so this function only validates the stored credential and returns a friendly
- * not-yet-implemented response.
- *
- * When the real API docs arrive, ONLY the body of `fetchOptenCompanies` below has
- * to change: it receives (criteria, apiKey) and is expected to return an array of
- * { company_name, teaor_code, teaor_description, net_revenue_band, city, domain,
- * raw_opten_data } objects. Everything around it (upsert into opten_prospects,
- * skipping duplicates via UNIQUE (project_id, company_name)) already works.
- */
-interface OptenCompany {
-  company_name: string;
-  teaor_code?: string | null;
-  teaor_description?: string | null;
-  net_revenue_band?: string | null;
-  city?: string | null;
-  domain?: string | null;
-  raw_opten_data?: unknown;
-}
-
-interface OptenCriteria {
-  teaor_suggestions?: TeaorSuggestion[];
-  revenue_band_label?: string;
-}
-
-async function fetchOptenCompanies(
-  _criteria: OptenCriteria,
-  _apiKey: string,
-): Promise<{ implemented: boolean; companies: OptenCompany[] }> {
-  // TODO(opten): replace with the real Opten query once the technical docs and
-  // the confirmed credential format are available.
-  return { implemented: false, companies: [] };
-}
-
-export const runOptenSearch = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { projectId: string }) => {
-    if (!input?.projectId) throw new Error("projectId szükséges");
-    return { projectId: input.projectId };
-  })
-  .handler(async ({ data, context }): Promise<OptenSearchResult> => {
-    const { supabase } = context;
-
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("id, organization_id, opten_search_criteria")
-      .eq("id", data.projectId)
-      .maybeSingle();
-    if (projectError) throw projectError;
-    if (!project) return { status: "error", message: "A projekt nem található." };
-
-    const criteria = (project.opten_search_criteria ?? null) as OptenCriteria | null;
-    if (!criteria) {
-      return {
-        status: "no_criteria",
-        message: "Először mentsd el a keresési kritériumokat.",
-      };
-    }
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: settings } = await supabaseAdmin
-      .from("settings")
-      .select("opten_api_key")
-      .eq("organization_id", project.organization_id)
-      .maybeSingle();
-
-    const apiKey = (settings?.opten_api_key ?? "").trim();
-    if (!apiKey) {
-      return { status: "no_api_key", message: "Nincs beállítva Opten API kulcs a Beállításokban" };
-    }
-
-    const { implemented, companies } = await fetchOptenCompanies(criteria, apiKey);
-    if (!implemented) {
-      return {
-        status: "not_implemented",
-        message:
-          "Az Opten integráció még nincs technikailag bekötve — a keresési kritériumok el vannak mentve, a tényleges lekérdezés hamarosan élesedik.",
-      };
-    }
-
-    const { data: existing } = await supabase
-      .from("opten_prospects")
-      .select("company_name")
-      .eq("project_id", project.id);
-    const known = new Set((existing ?? []).map((row) => row.company_name));
-
-    const rows = companies
-      .filter((company) => company.company_name && !known.has(company.company_name))
-      .map((company) => ({
-        organization_id: project.organization_id,
-        project_id: project.id,
-        company_name: company.company_name,
-        teaor_code: company.teaor_code ?? null,
-        teaor_description: company.teaor_description ?? null,
-        net_revenue_band: company.net_revenue_band ?? null,
-        city: company.city ?? null,
-        domain: company.domain ?? null,
-        raw_opten_data: (company.raw_opten_data ?? null) as never,
-      }));
-
-    if (rows.length === 0) return { status: "ok", created: 0 };
-
-    const { error: insertError } = await supabase.from("opten_prospects").insert(rows);
-    if (insertError) throw insertError;
-
-    return { status: "ok", created: rows.length };
   });

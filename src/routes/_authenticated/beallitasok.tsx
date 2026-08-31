@@ -51,7 +51,6 @@ interface Settings {
   monthly_ai_budget_usd: number | null;
   ai_usage_estimated_usd: number | null;
   ai_provider_out_of_credit: boolean;
-  opten_api_key: string | null;
   opten_revenue_bands: RevenueBand[] | null;
 }
 
@@ -156,7 +155,6 @@ function SettingsPage() {
   const [windowStart, setWindowStart] = useState("09:00");
   const [windowEnd, setWindowEnd] = useState("16:00");
   const [schedule, setSchedule] = useState<number[]>([4, 10, 21]);
-  const [optenKey, setOptenKey] = useState("");
   const [bands, setBands] = useState<RevenueBand[]>([]);
 
 
@@ -175,7 +173,6 @@ function SettingsPage() {
     setSchedule(
       Array.isArray(settings.follow_up_schedule) ? settings.follow_up_schedule : [4, 10, 21],
     );
-    setOptenKey(settings.opten_api_key ?? "");
     setBands(Array.isArray(settings.opten_revenue_bands) ? settings.opten_revenue_bands : []);
   }, [settings]);
 
@@ -343,25 +340,14 @@ function SettingsPage() {
           </SectionCard>
 
           <SectionCard
-            title="Opten kapcsolat"
-            description="Cégadatbázis-keresés hitelesítése és a választható árbevétel-sávok."
+            title="Opten export beállítások"
+            description="Az Opten Excel/CSV exportok feldolgozásához használt árbevétel-sávok. (Az Optennek nincs API-ja — a cégadatok kézi fájlfeltöltéssel kerülnek be.)"
           >
-            <div className="max-w-md">
-              <SecretInput
-                id="opten"
-                label="Opten API kulcs"
-                helper="Az Opten pontos hitelesítési módja még nincs visszaigazolva (lehet SOAP kliens-tanúsítvány, felhasználónév/jelszó pár vagy egyszerű API kulcs) — a mező formátuma változhat, amint megérkeznek a technikai dokumentumok."
-                value={optenKey}
-                onChange={setOptenKey}
-              />
-            </div>
-
-            <div className="mt-6 space-y-3">
+            <div className="space-y-3">
               <Label>Árbevétel-sávok</Label>
               {bands.length === 0 ? (
                 <p className="max-w-2xl text-sm text-muted-foreground">
-                  Még nincs beállítva árbevétel-sáv — kérd be az Opten által kínált szűrési
-                  lehetőségeket, majd add meg itt.
+                  Még nincs beállítva árbevétel-sáv.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -439,7 +425,6 @@ function SettingsPage() {
               <Button
                 onClick={() =>
                   save.mutate({
-                    opten_api_key: optenKey.trim() || null,
                     opten_revenue_bands: bands
                       .filter((band) => band.label.trim().length > 0)
                       .map((band) => ({

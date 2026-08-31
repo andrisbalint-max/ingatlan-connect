@@ -6,6 +6,10 @@ export interface HunterPerson {
   name: string;
   email: string;
   position: string | null;
+  /** Hunter's own seniority classification ("executive" | "senior" | "junior"). */
+  seniority: string | null;
+  /** Hunter's department classification ("executive", "management", "sales", ...). */
+  department: string | null;
 }
 
 export interface HunterSearchResult {
@@ -89,6 +93,8 @@ export const hunterSearch = createServerFn({ method: "POST" })
             first_name?: string | null;
             last_name?: string | null;
             position?: string | null;
+            seniority?: string | null;
+            department?: string | null;
           }>;
         };
       }).data?.emails ?? [];
@@ -99,6 +105,8 @@ export const hunterSearch = createServerFn({ method: "POST" })
         name: [entry.first_name, entry.last_name].filter(Boolean).join(" ").trim() || entry.value!,
         email: entry.value!,
         position: entry.position ?? null,
+        seniority: entry.seniority ?? null,
+        department: entry.department ?? null,
       }));
 
     return { status: "ok", people };
@@ -169,6 +177,8 @@ export const hunterSearchByDomain = createServerFn({ method: "POST" })
             first_name?: string | null;
             last_name?: string | null;
             position?: string | null;
+            seniority?: string | null;
+            department?: string | null;
           }>;
         };
       }).data?.emails ?? [];
@@ -179,6 +189,8 @@ export const hunterSearchByDomain = createServerFn({ method: "POST" })
         name: [entry.first_name, entry.last_name].filter(Boolean).join(" ").trim() || entry.value!,
         email: entry.value!,
         position: entry.position ?? null,
+        seniority: entry.seniority ?? null,
+        department: entry.department ?? null,
       }));
 
     return { status: "ok", people };
