@@ -81,9 +81,12 @@ export const Route = createFileRoute("/api/public/cron/email-scheduler")({
 });
 
 function parseTime(value: string): { hour: number; minute: number } {
-  const [h, m] = value.split(":").map((v) => parseInt(v, 10));
+  const parts = value.split(":").map((v) => parseInt(v, 10));
+  const h = parts[0];
+  const m = parts[1];
   return { hour: Number.isNaN(h) ? 9 : h, minute: Number.isNaN(m) ? 0 : m };
 }
+
 
 function nextSlotWithinWindow(now: Date, start: { hour: number; minute: number }, end: { hour: number; minute: number }): Date {
   const slot = new Date(now);
