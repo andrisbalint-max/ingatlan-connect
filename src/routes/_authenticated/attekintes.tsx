@@ -88,6 +88,8 @@ function Dashboard() {
         ))}
       </div>
 
+      <NewResponses />
+
       <section className="card-surface mt-6 p-6">
         <h2 className="text-base font-semibold text-foreground">Legutóbbi események</h2>
         <p className="mt-1 text-sm text-muted-foreground">
