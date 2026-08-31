@@ -509,6 +509,7 @@ export type Database = {
       }
       settings: {
         Row: {
+          anthropic_api_key: string | null
           created_at: string
           daily_email_limit: number
           follow_up_schedule: Json
@@ -517,10 +518,12 @@ export type Database = {
           openai_api_key: string | null
           organization_id: string
           outlook_connected: boolean
+          preferred_ai_provider: string
           send_window_end: string
           send_window_start: string
         }
         Insert: {
+          anthropic_api_key?: string | null
           created_at?: string
           daily_email_limit?: number
           follow_up_schedule?: Json
@@ -529,10 +532,12 @@ export type Database = {
           openai_api_key?: string | null
           organization_id: string
           outlook_connected?: boolean
+          preferred_ai_provider?: string
           send_window_end?: string
           send_window_start?: string
         }
         Update: {
+          anthropic_api_key?: string | null
           created_at?: string
           daily_email_limit?: number
           follow_up_schedule?: Json
@@ -541,6 +546,7 @@ export type Database = {
           openai_api_key?: string | null
           organization_id?: string
           outlook_connected?: boolean
+          preferred_ai_provider?: string
           send_window_end?: string
           send_window_start?: string
         }
