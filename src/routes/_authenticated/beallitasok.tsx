@@ -346,31 +346,8 @@ function SettingsPage() {
             </div>
           </SectionCard>
 
-          <SectionCard
-            title="Outlook kapcsolat"
-            description="Emailek kiküldése és válaszok fogadása a saját Microsoft fiókodon keresztül."
-          >
-            <div className="flex flex-col gap-4 rounded-xl border border-border bg-secondary/30 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span
-                  aria-hidden
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    settings?.outlook_connected ? "bg-primary" : "bg-muted-foreground/50"
-                  }`}
-                />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Microsoft Outlook</p>
-                  <Badge variant="secondary" className="mt-1 font-normal">
-                    {settings?.outlook_connected ? "Bekötve" : "Nincs bekötve"}
-                  </Badge>
-                </div>
-              </div>
-              <Button disabled variant="outline">
-                <Mail className="mr-2 h-4 w-4" />
-                Bejelentkezés Microsofttal (hamarosan)
-              </Button>
-            </div>
-          </SectionCard>
+          <OutlookSection />
+
         </div>
       )}
     </div>
