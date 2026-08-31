@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Eye, EyeOff, Plus, X, Mail } from "lucide-react";
+import { Eye, EyeOff, Plus, X, Mail, Loader2, Unlink } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -13,6 +13,14 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  startOutlookAuth,
+  getOutlookStatus,
+  disconnectOutlook,
+  setupEmailCronJobs,
+} from "@/lib/outlook.functions";
+
+
 
 export const Route = createFileRoute("/_authenticated/beallitasok")({
   head: () => ({
@@ -340,33 +348,147 @@ function SettingsPage() {
             </div>
           </SectionCard>
 
-          <SectionCard
-            title="Outlook kapcsolat"
-            description="Emailek kiküldése és válaszok fogadása a saját Microsoft fiókodon keresztül."
-          >
-            <div className="flex flex-col gap-4 rounded-xl border border-border bg-secondary/30 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span
-                  aria-hidden
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    settings?.outlook_connected ? "bg-primary" : "bg-muted-foreground/50"
-                  }`}
-                />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Microsoft Outlook</p>
-                  <Badge variant="secondary" className="mt-1 font-normal">
-                    {settings?.outlook_connected ? "Bekötve" : "Nincs bekötve"}
-                  </Badge>
-                </div>
-              </div>
-              <Button disabled variant="outline">
-                <Mail className="mr-2 h-4 w-4" />
-                Bejelentkezés Microsofttal (hamarosan)
-              </Button>
-            </div>
-          </SectionCard>
+          <OutlookSection />
+
         </div>
       )}
     </div>
   );
 }
+
+function OutlookSection() {
+  const queryClient = useQueryClient();
+  const [popup, setPopup] = useState<Window | null>(null);
+
+  const { data: status, isLoading } = useQuery({
+    queryKey: ["outlook-status"],
+    queryFn: () => getOutlookStatus(),
+  });
+
+  const connect = useMutation({
+    mutationFn: () => startOutlookAuth(),
+    onSuccess: ({ authUrl }) => {
+      const width = 500;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 3;
+      const win = window.open(
+        authUrl,
+        "microsoftOAuth",
+        `width=${width},height=${height},top=${top},left=${left}`,
+      );
+      setPopup(win);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const disconnect = useMutation({
+    mutationFn: () => disconnectOutlook(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Outlook kapcsolat bontva.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const setupCron = useMutation({
+    mutationFn: () => setupEmailCronJobs(),
+    onSuccess: () => toast.success("Email cron feladatok beállítva."),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+
+  useEffect(() => {
+    if (!popup) return;
+    const handler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "microsoftOutlookConnected") {
+        queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
+        queryClient.invalidateQueries({ queryKey: ["settings"] });
+        toast.success("Outlook sikeresen bekötve.");
+        setPopup(null);
+      }
+    };
+    window.addEventListener("message", handler);
+    const timer = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(timer);
+        window.removeEventListener("message", handler);
+        setPopup(null);
+        queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
+      }
+    }, 500);
+    return () => {
+      window.removeEventListener("message", handler);
+      clearInterval(timer);
+    };
+  }, [popup, queryClient]);
+
+  return (
+    <SectionCard
+      title="Outlook kapcsolat"
+      description="Emailek kiküldése és válaszok fogadása a saját Microsoft fiókodon keresztül."
+    >
+      <div className="flex flex-col gap-4 rounded-xl border border-border bg-secondary/30 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className={`h-2.5 w-2.5 rounded-full ${
+              status?.connected ? "bg-primary" : "bg-muted-foreground/50"
+            }`}
+          />
+          <div>
+            <p className="text-sm font-medium text-foreground">Microsoft Outlook</p>
+            <Badge variant="secondary" className="mt-1 font-normal">
+              {isLoading
+                ? "Betöltés…"
+                : status?.connected
+                  ? `Bekötve: ${status.accountEmail ?? "ismeretlen"}`
+                  : "Nincs bekötve"}
+            </Badge>
+          </div>
+        </div>
+        {status?.connected ? (
+          <Button
+            variant="outline"
+            disabled={disconnect.isPending}
+            onClick={() => disconnect.mutate()}
+          >
+            {disconnect.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Unlink className="mr-2 h-4 w-4" />
+            )}
+            Kapcsolat bontása
+          </Button>
+        ) : (
+          <Button disabled={connect.isPending} onClick={() => connect.mutate()}>
+            {connect.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="mr-2 h-4 w-4" />
+            )}
+            Bejelentkezés Microsofttal
+          </Button>
+        )}
+      </div>
+      <p className="mt-4 text-xs text-muted-foreground">
+        A bekötés után indítsd el az automatikus email küldést az alábbi gombbal.
+      </p>
+      <div className="mt-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={setupCron.isPending}
+          onClick={() => setupCron.mutate()}
+        >
+          {setupCron.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Email cron feladatok beállítása
+        </Button>
+      </div>
+    </SectionCard>
+  );
+}
+
+

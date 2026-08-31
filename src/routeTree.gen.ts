@@ -19,6 +19,9 @@ import { Route as AuthenticatedEmailSorRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedFelhasznalokRouteImport } from './routes/_authenticated/felhasznalok'
 import { Route as AuthenticatedProjektekRouteImport } from './routes/_authenticated/projektek'
 import { Route as AuthenticatedRiportokRouteImport } from './routes/_authenticated/riportok'
+import { Route as ApiPublicCronEmailSchedulerRouteImport } from './routes/api/public/cron/email-scheduler'
+import { Route as ApiPublicCronEmailSenderRouteImport } from './routes/api/public/cron/email-sender'
+import { Route as ApiPublicAuthMicrosoftCallbackRouteImport } from './routes/api/public/auth/microsoft/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -71,6 +74,24 @@ const AuthenticatedRiportokRoute = AuthenticatedRiportokRouteImport.update({
   path: '/riportok',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicCronEmailSchedulerRoute =
+  ApiPublicCronEmailSchedulerRouteImport.update({
+    id: '/api/public/cron/email-scheduler',
+    path: '/api/public/cron/email-scheduler',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronEmailSenderRoute =
+  ApiPublicCronEmailSenderRouteImport.update({
+    id: '/api/public/cron/email-sender',
+    path: '/api/public/cron/email-sender',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicAuthMicrosoftCallbackRoute =
+  ApiPublicAuthMicrosoftCallbackRouteImport.update({
+    id: '/api/public/auth/microsoft/callback',
+    path: '/api/public/auth/microsoft/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +103,9 @@ export interface FileRoutesByFullPath {
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
   '/projektek': typeof AuthenticatedProjektekRoute
   '/riportok': typeof AuthenticatedRiportokRoute
+  '/api/public/cron/email-scheduler': typeof ApiPublicCronEmailSchedulerRoute
+  '/api/public/cron/email-sender': typeof ApiPublicCronEmailSenderRoute
+  '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,6 +117,9 @@ export interface FileRoutesByTo {
   '/felhasznalok': typeof AuthenticatedFelhasznalokRoute
   '/projektek': typeof AuthenticatedProjektekRoute
   '/riportok': typeof AuthenticatedRiportokRoute
+  '/api/public/cron/email-scheduler': typeof ApiPublicCronEmailSchedulerRoute
+  '/api/public/cron/email-sender': typeof ApiPublicCronEmailSenderRoute
+  '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,6 +133,9 @@ export interface FileRoutesById {
   '/_authenticated/felhasznalok': typeof AuthenticatedFelhasznalokRoute
   '/_authenticated/projektek': typeof AuthenticatedProjektekRoute
   '/_authenticated/riportok': typeof AuthenticatedRiportokRoute
+  '/api/public/cron/email-scheduler': typeof ApiPublicCronEmailSchedulerRoute
+  '/api/public/cron/email-sender': typeof ApiPublicCronEmailSenderRoute
+  '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,6 +149,9 @@ export interface FileRouteTypes {
     | '/felhasznalok'
     | '/projektek'
     | '/riportok'
+    | '/api/public/cron/email-scheduler'
+    | '/api/public/cron/email-sender'
+    | '/api/public/auth/microsoft/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -130,6 +163,9 @@ export interface FileRouteTypes {
     | '/felhasznalok'
     | '/projektek'
     | '/riportok'
+    | '/api/public/cron/email-scheduler'
+    | '/api/public/cron/email-sender'
+    | '/api/public/auth/microsoft/callback'
   id:
     | '__root__'
     | '/'
@@ -142,12 +178,18 @@ export interface FileRouteTypes {
     | '/_authenticated/felhasznalok'
     | '/_authenticated/projektek'
     | '/_authenticated/riportok'
+    | '/api/public/cron/email-scheduler'
+    | '/api/public/cron/email-sender'
+    | '/api/public/auth/microsoft/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicCronEmailSchedulerRoute: typeof ApiPublicCronEmailSchedulerRoute
+  ApiPublicCronEmailSenderRoute: typeof ApiPublicCronEmailSenderRoute
+  ApiPublicAuthMicrosoftCallbackRoute: typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -222,6 +264,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRiportokRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/cron/email-scheduler': {
+      id: '/api/public/cron/email-scheduler'
+      path: '/api/public/cron/email-scheduler'
+      fullPath: '/api/public/cron/email-scheduler'
+      preLoaderRoute: typeof ApiPublicCronEmailSchedulerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/email-sender': {
+      id: '/api/public/cron/email-sender'
+      path: '/api/public/cron/email-sender'
+      fullPath: '/api/public/cron/email-sender'
+      preLoaderRoute: typeof ApiPublicCronEmailSenderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/auth/microsoft/callback': {
+      id: '/api/public/auth/microsoft/callback'
+      path: '/api/public/auth/microsoft/callback'
+      fullPath: '/api/public/auth/microsoft/callback'
+      preLoaderRoute: typeof ApiPublicAuthMicrosoftCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -252,6 +315,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicCronEmailSchedulerRoute: ApiPublicCronEmailSchedulerRoute,
+  ApiPublicCronEmailSenderRoute: ApiPublicCronEmailSenderRoute,
+  ApiPublicAuthMicrosoftCallbackRoute: ApiPublicAuthMicrosoftCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
