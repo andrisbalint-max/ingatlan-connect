@@ -48,7 +48,15 @@ interface Settings {
   send_window_start: string;
   send_window_end: string;
   follow_up_schedule: number[] | null;
+  monthly_ai_budget_usd: number | null;
+  ai_usage_estimated_usd: number | null;
+  ai_provider_out_of_credit: boolean;
 }
+
+const PROVIDER_LABELS: Record<string, string> = {
+  anthropic: "Claude",
+  openai: "OpenAI",
+};
 
 function toTimeInput(value: string | null | undefined) {
   if (!value) return "09:00";
