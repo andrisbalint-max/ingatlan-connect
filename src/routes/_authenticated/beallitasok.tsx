@@ -392,6 +392,13 @@ function OutlookSection() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const setupCron = useMutation({
+    mutationFn: () => setupEmailCronJobs(),
+    onSuccess: () => toast.success("Email cron feladatok beállítva."),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+
   useEffect(() => {
     if (!popup) return;
     const handler = (event: MessageEvent) => {
