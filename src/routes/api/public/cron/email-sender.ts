@@ -85,9 +85,11 @@ export const Route = createFileRoute("/api/public/cron/email-sender")({
             if (sendResult.invalidateConnection) {
               await invalidateConnection(row.organization_id);
             }
-            await markFailed(row.id, sendResult.error ?? "Unknown send error.");
-            results.push({ id: row.id, status: "failed", error: sendResult.error });
+            const errorMessage = sendResult.error ?? "Unknown send error.";
+            await markFailed(row.id, errorMessage);
+            results.push({ id: row.id, status: "failed", error: errorMessage });
           }
+
         }
 
         return Response.json({ success: true, processed: results.length, results });
