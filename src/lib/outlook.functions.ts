@@ -134,7 +134,18 @@ export const setupEmailCronJobs = createServerFn({ method: "POST" })
         schedule: "30 6 * * *",
         url: `${publicUrl}/api/public/cron/follow-up-generator`,
       },
+      {
+        name: "inbox-poller-every-5-min",
+        schedule: "*/5 * * * *",
+        url: `${publicUrl}/api/public/cron/inbox-poller`,
+      },
+      {
+        name: "response-classifier-every-15-min",
+        schedule: "*/15 * * * *",
+        url: `${publicUrl}/api/public/cron/response-classifier`,
+      },
     ];
+
 
 
     for (const job of schedules) {
