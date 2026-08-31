@@ -155,6 +155,9 @@ function SettingsPage() {
     setOpenaiKey(settings.openai_api_key ?? "");
     setAnthropicKey(settings.anthropic_api_key ?? "");
     setAiProvider(settings.preferred_ai_provider === "openai" ? "openai" : "anthropic");
+    setAiBudget(
+      settings.monthly_ai_budget_usd != null ? String(settings.monthly_ai_budget_usd) : "",
+    );
     setDailyLimit(settings.daily_email_limit ?? 30);
     setWindowStart(toTimeInput(settings.send_window_start));
     setWindowEnd(toTimeInput(settings.send_window_end));
