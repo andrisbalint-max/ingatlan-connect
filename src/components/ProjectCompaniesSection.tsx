@@ -60,7 +60,7 @@ export function ProjectCompaniesSection({
   organizationId: string;
 }) {
   const queryClient = useQueryClient();
-  const runMatch = useServerFn(matchProjectCompanies);
+  
   const runOutreach = useServerFn(generateProjectOutreach);
   const runHunter = useServerFn(hunterSearch);
   const [manualOpen, setManualOpen] = useState(false);
