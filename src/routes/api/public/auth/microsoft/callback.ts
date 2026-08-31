@@ -92,10 +92,11 @@ export const Route = createFileRoute("/api/public/auth/microsoft/callback")({
           return new Response(`Failed to update settings: ${settingsError.message}`, { status: 500 });
         }
 
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'microsoftOutlookConnected'}, window.location.origin);window.close();</script><p>Sikeres kapcsolódás. Bezárhatod ezt az ablakot.</p></body></html>`,
-          { headers: { "Content-Type": "text/html" } },
-        );
+        return new Response(null, {
+          status: 302,
+          headers: { Location: "/beallitasok?outlook=connected" },
+        });
+
 
       },
     },
