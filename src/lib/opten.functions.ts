@@ -24,6 +24,13 @@ export interface CategorizeResult {
   categorized?: number | undefined;
 }
 
+export interface DomainLookupResult {
+  status: AiCallStatus | "nothing_to_do" | "not_found";
+  message?: string | undefined;
+  domain?: string | undefined;
+  sourceUrl?: string | undefined;
+}
+
 export interface CategorySuggestionResult {
   status: AiCallStatus | "no_categories";
   message?: string | undefined;
