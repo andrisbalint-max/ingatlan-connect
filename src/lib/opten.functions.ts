@@ -346,3 +346,107 @@ export const suggestProjectCategories = createServerFn({ method: "POST" })
       categories: picked.filter((category) => categories.includes(category)),
     };
   });
+
+const DOMAIN_SYSTEM_PROMPT =
+  'Magyar cégek hivatalos weboldalát azonosító asszisztens vagy. Web keresés alapján add meg a megnevezett magyar cég hivatalos weboldalának domainjét. KIZÁRÓLAG akkor adj meg domaint, ha a keresési eredmények egyértelműen azonosítják — soha ne találj ki, ne tippelj és ne következtess a cégnévből domaint. Válaszod KIZÁRÓLAG JSON: {"domain":"pelda.hu"} vagy {"domain":null,"reason":"nem található"}. A domain protokoll és útvonal nélkül, kisbetűvel, www nélkül szerepeljen.';
+
+function normalizeDomain(value: unknown): string | null {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw || raw === "null" || raw.includes("nem található")) return null;
+  const cleaned = raw
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "")
+    .replace(/[),.;]+$/, "")
+    .trim();
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(cleaned)) return null;
+  return cleaned;
+}
+
+/**
+ * AI web-search domain lookup for ONE prospect that has no domain yet.
+ *
+ * Never overwrites an existing domain: the final update is guarded with
+ * `.is("domain", null)`, so a value coming from the Excel import ('opten_excel')
+ * or a manual edit ('kezi') can never be replaced by an automated run.
+ */
+export const resolveProspectDomain = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { prospectId: string }) => {
+    if (!input?.prospectId) throw new Error("prospectId szükséges");
+    return { prospectId: input.prospectId };
+  })
+  .handler(async ({ data, context }): Promise<DomainLookupResult> => {
+    const { supabase } = context;
+
+    const { data: prospect, error } = await supabase
+      .from("opten_prospects")
+      .select("id, organization_id, company_name, city, domain")
+      .eq("id", data.prospectId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!prospect) return { status: "error", message: "A cég nem található." };
+    if (prospect.domain) return { status: "nothing_to_do", domain: prospect.domain };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: settings } = await supabaseAdmin
+      .from("settings")
+      .select("openai_api_key, anthropic_api_key, preferred_ai_provider")
+      .eq("organization_id", prospect.organization_id)
+      .maybeSingle();
+
+    const { resolveAiProvider, generateTextWithWebSearch, isAiOutOfCreditError } = await import(
+      "@/server/ai-provider.server"
+    );
+    const resolved = resolveAiProvider(settings);
+    if (!resolved) return { status: "no_provider", message: "AI-szolgáltató nincs beállítva" };
+
+    let text: string;
+    let sources: string[] = [];
+    try {
+      const result = await generateTextWithWebSearch({
+        provider: resolved.provider,
+        apiKey: resolved.apiKey,
+        systemPrompt: DOMAIN_SYSTEM_PROMPT,
+        userPrompt: [
+          `Cég neve: ${prospect.company_name}`,
+          prospect.city ? `Település: ${prospect.city}` : null,
+          "",
+          "Keresd meg a cég hivatalos weboldalát. Ha a találatok nem azonosítják egyértelműen, válaszolj: {\"domain\":null,\"reason\":\"nem található\"}.",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        organizationId: prospect.organization_id,
+        maxTokens: 800,
+      });
+      text = result.text;
+      sources = result.sources;
+    } catch (err) {
+      if (isAiOutOfCreditError(err)) {
+        return { status: "out_of_credit", message: "Elfogyott az AI-kredit, próbáld később" };
+      }
+      return {
+        status: "error",
+        message: err instanceof Error ? err.message : "Az AI hívás nem sikerült.",
+      };
+    }
+
+    let domain: string | null = null;
+    try {
+      const parsed = parseJsonBlock(text) as { domain?: unknown };
+      domain = normalizeDomain(parsed.domain);
+    } catch {
+      domain = null;
+    }
+
+    if (!domain) return { status: "not_found" };
+
+    const { error: updateError } = await supabase
+      .from("opten_prospects")
+      .update({ domain, domain_source: "ai_web_search" })
+      .eq("id", prospect.id)
+      .is("domain", null);
+    if (updateError) return { status: "error", message: updateError.message };
+
+    return { status: "ok", domain, ...(sources[0] ? { sourceUrl: sources[0] } : {}) };
+  });
