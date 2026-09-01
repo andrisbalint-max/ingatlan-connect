@@ -432,7 +432,7 @@ function FoundCompanies() {
           ) : (
             <Search className="mr-2 size-4" strokeWidth={1.5} />
           )}
-          Keresés Hunterrel
+          2. Keresés Hunterrel
         </Button>
         {isAdmin && (
           <Button
