@@ -12,6 +12,8 @@ export interface ProspectRow {
   net_revenue_band: string | null;
   city: string | null;
   domain: string | null;
+  /** 'opten_excel' | 'ai_web_search' | 'kezi' */
+  domain_source: string | null;
   hunter_status: string;
   found_contacts: FoundPerson[] | null;
   decision_maker_name: string | null;

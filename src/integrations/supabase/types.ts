@@ -304,6 +304,7 @@ export type Database = {
           decision_maker_name: string | null
           decision_maker_position: string | null
           domain: string | null
+          domain_source: string | null
           found_contacts: Json
           hunter_status: string
           id: string
@@ -325,6 +326,7 @@ export type Database = {
           decision_maker_name?: string | null
           decision_maker_position?: string | null
           domain?: string | null
+          domain_source?: string | null
           found_contacts?: Json
           hunter_status?: string
           id?: string
@@ -346,6 +348,7 @@ export type Database = {
           decision_maker_name?: string | null
           decision_maker_position?: string | null
           domain?: string | null
+          domain_source?: string | null
           found_contacts?: Json
           hunter_status?: string
           id?: string

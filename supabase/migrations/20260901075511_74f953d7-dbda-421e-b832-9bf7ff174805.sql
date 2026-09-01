@@ -1,0 +1,2 @@
+ALTER TABLE public.opten_prospects ADD COLUMN IF NOT EXISTS domain_source text NULL;
+UPDATE public.opten_prospects SET domain_source = 'opten_excel' WHERE domain IS NOT NULL AND domain <> '' AND domain_source IS NULL;

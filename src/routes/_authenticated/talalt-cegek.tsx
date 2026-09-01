@@ -6,7 +6,9 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
+  Globe,
   Loader2,
+  Pencil,
   Search,
   Sparkles,
   Trash2,
@@ -17,7 +19,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { hunterSearchByDomain } from "@/lib/hunter.functions";
-import { categorizeOptenProspects, getOptenConfig } from "@/lib/opten.functions";
+import {
+  categorizeOptenProspects,
+  getOptenConfig,
+  resolveProspectDomain,
+} from "@/lib/opten.functions";
 import {
   HUNTER_STATUS_LABELS,
   HUNTER_STATUS_STYLES,
@@ -83,6 +89,8 @@ function FoundCompanies() {
   const { data: profile } = useProfile();
   const runHunter = useServerFn(hunterSearchByDomain);
   const categorize = useServerFn(categorizeOptenProspects);
+  const findDomain = useServerFn(resolveProspectDomain);
+
 
   const [term, setTerm] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -93,6 +101,13 @@ function FoundCompanies() {
   const [newCategoryValue, setNewCategoryValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProspectRow | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  /** prospect id -> AI web search source URL (in-session, csak ellenőrzéshez) */
+  const [domainSources, setDomainSources] = useState<Record<string, string>>({});
+  /** prospect id -> "nem található automatikusan" jelzés az utolsó AI futásból */
+  const [domainMissing, setDomainMissing] = useState<Set<string>>(new Set());
+  const [domainEditFor, setDomainEditFor] = useState<string | null>(null);
+  const [domainEditValue, setDomainEditValue] = useState("");
+
 
   const isAdmin = profile?.role === "admin";
 
@@ -203,6 +218,98 @@ function FoundCompanies() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  /**
+   * AI web-search domain kitöltés — csak azoknál a soroknál fut, ahol a domain
+   * még NULL, így az Opten importból vagy kézi szerkesztésből származó értéket
+   * soha nem írja felül.
+   */
+  const bulkDomainSearch = useMutation({
+    mutationFn: async () => {
+      const targets = (
+        selected.size > 0 ? visible.filter((r) => selected.has(r.id)) : visible
+      ).filter((row) => !row.domain);
+      setProgress({ done: 0, total: targets.length });
+      let found = 0;
+      let missing = 0;
+      let stopMessage: string | null = null;
+      const sources: Record<string, string> = {};
+      const notFound = new Set<string>();
+
+      for (const [index, row] of targets.entries()) {
+        const result = await findDomain({ data: { prospectId: row.id } });
+        if (result.status === "ok") {
+          found += 1;
+          if (result.sourceUrl) sources[row.id] = result.sourceUrl;
+        } else if (result.status === "not_found") {
+          missing += 1;
+          notFound.add(row.id);
+        } else if (result.status === "no_provider" || result.status === "out_of_credit") {
+          stopMessage = result.message ?? "Az AI-keresés nem futott le.";
+          break;
+        } else if (result.status === "error") {
+          missing += 1;
+          notFound.add(row.id);
+        }
+        setProgress({ done: index + 1, total: targets.length });
+      }
+
+      setDomainSources((prev) => ({ ...prev, ...sources }));
+      setDomainMissing((prev) => new Set([...prev, ...notFound]));
+      return { found, missing, stopMessage };
+    },
+    onSettled: () => {
+      setProgress(null);
+      queryClient.invalidateQueries({ queryKey: ["opten-prospects-all"] });
+    },
+    onSuccess: ({ found, missing, stopMessage }) => {
+      if (stopMessage) {
+        setNotice(stopMessage);
+        toast.info(stopMessage);
+        return;
+      }
+      setNotice(null);
+      toast.success(`${found} domain megtalálva, ${missing} nem található.`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const saveDomain = useMutation({
+    mutationFn: async ({ id, domain }: { id: string; domain: string }) => {
+      const cleaned = domain
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .replace(/\/.*$/, "");
+      const { error } = await supabase
+        .from("opten_prospects")
+        .update({
+          domain: cleaned || null,
+          domain_source: cleaned ? "kezi" : null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ["opten-prospects-all"] });
+      setDomainMissing((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setDomainSources((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setDomainEditFor(null);
+      setDomainEditValue("");
+      toast.success("Domain frissítve.");
+    },
+    onError: () => toast.error("A domain mentése nem sikerült, próbáld újra."),
+  });
+
   const setCategory = useMutation({
     mutationFn: async ({ id, category }: { id: string; category: string }) => {
       const { error } = await supabase
@@ -304,15 +411,28 @@ function FoundCompanies() {
           Mind
         </label>
         <Button
+          variant="outline"
+          onClick={() => bulkDomainSearch.mutate()}
+          disabled={bulkDomainSearch.isPending || bulkHunter.isPending || visible.length === 0}
+          title="Futtasd ezt előbb — a Hunter csak domainnel tud kontaktot keresni."
+        >
+          {bulkDomainSearch.isPending ? (
+            <Loader2 className="mr-2 size-4 animate-spin" />
+          ) : (
+            <Globe className="mr-2 size-4" strokeWidth={1.5} />
+          )}
+          1. Domain keresése hiányzóknál (AI)
+        </Button>
+        <Button
           onClick={() => bulkHunter.mutate()}
-          disabled={bulkHunter.isPending || visible.length === 0}
+          disabled={bulkHunter.isPending || bulkDomainSearch.isPending || visible.length === 0}
         >
           {bulkHunter.isPending ? (
             <Loader2 className="mr-2 size-4 animate-spin" />
           ) : (
             <Search className="mr-2 size-4" strokeWidth={1.5} />
           )}
-          Keresés Hunterrel
+          2. Keresés Hunterrel
         </Button>
         {isAdmin && (
           <Button
@@ -443,16 +563,94 @@ function FoundCompanies() {
                                   row.teaor_description,
                                   row.net_revenue_band,
                                   row.city,
-                                  row.domain || "Nincs domain megadva",
                                 ]
                                   .filter(Boolean)
                                   .join(" · ")}
                               </p>
 
-                              {!row.domain && (
-                                <p className="text-xs text-muted-foreground">
-                                  Nincs domain — Hunter nem tud rá keresni
-                                </p>
+                              {domainEditFor === row.id ? (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Input
+                                    value={domainEditValue}
+                                    onChange={(e) => setDomainEditValue(e.target.value)}
+                                    placeholder="pelda.hu"
+                                    className="h-8 w-56 text-xs"
+                                    aria-label={`${row.company_name} domainje`}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      saveDomain.mutate({ id: row.id, domain: domainEditValue })
+                                    }
+                                    disabled={saveDomain.isPending}
+                                  >
+                                    Mentés
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setDomainEditFor(null)}
+                                  >
+                                    Mégse
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap items-center gap-2 text-sm">
+                                  <Globe
+                                    className="size-4 text-muted-foreground"
+                                    strokeWidth={1.5}
+                                  />
+                                  {row.domain ? (
+                                    <button
+                                      type="button"
+                                      className="text-foreground underline-offset-2 hover:underline"
+                                      onClick={() => {
+                                        setDomainEditFor(row.id);
+                                        setDomainEditValue(row.domain ?? "");
+                                      }}
+                                    >
+                                      {row.domain}
+                                    </button>
+                                  ) : (
+                                    <span className="text-muted-foreground">
+                                      Nincs domain — Hunter nem tud rá keresni
+                                    </span>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-muted-foreground"
+                                    aria-label={`${row.company_name} domain szerkesztése`}
+                                    onClick={() => {
+                                      setDomainEditFor(row.id);
+                                      setDomainEditValue(row.domain ?? "");
+                                    }}
+                                  >
+                                    <Pencil className="size-3.5" strokeWidth={1.5} />
+                                  </Button>
+                                  {row.domain && row.domain_source === "ai_web_search" && (
+                                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                      AI-javaslat — ellenőrizd
+                                    </span>
+                                  )}
+                                  {row.domain &&
+                                    row.domain_source === "ai_web_search" &&
+                                    domainSources[row.id] && (
+                                      <a
+                                        href={domainSources[row.id]}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-xs text-primary underline-offset-2 hover:underline"
+                                      >
+                                        Forrás
+                                      </a>
+                                    )}
+                                  {!row.domain && domainMissing.has(row.id) && (
+                                    <span className="text-xs text-muted-foreground">
+                                      Nem található automatikusan — add meg kézzel.
+                                    </span>
+                                  )}
+                                </div>
                               )}
 
                               {row.decision_maker_email ? (
