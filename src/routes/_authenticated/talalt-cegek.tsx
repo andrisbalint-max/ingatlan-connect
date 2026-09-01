@@ -19,7 +19,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { hunterSearchByDomain } from "@/lib/hunter.functions";
-import { categorizeOptenProspects, getOptenConfig } from "@/lib/opten.functions";
+import {
+  categorizeOptenProspects,
+  getOptenConfig,
+  resolveProspectDomain,
+} from "@/lib/opten.functions";
 import {
   HUNTER_STATUS_LABELS,
   HUNTER_STATUS_STYLES,
