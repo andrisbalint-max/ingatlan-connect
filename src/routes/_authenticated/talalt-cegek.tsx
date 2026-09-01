@@ -411,8 +411,21 @@ function FoundCompanies() {
           Mind
         </label>
         <Button
+          variant="outline"
+          onClick={() => bulkDomainSearch.mutate()}
+          disabled={bulkDomainSearch.isPending || bulkHunter.isPending || visible.length === 0}
+          title="Futtasd ezt előbb — a Hunter csak domainnel tud kontaktot keresni."
+        >
+          {bulkDomainSearch.isPending ? (
+            <Loader2 className="mr-2 size-4 animate-spin" />
+          ) : (
+            <Globe className="mr-2 size-4" strokeWidth={1.5} />
+          )}
+          1. Domain keresése hiányzóknál (AI)
+        </Button>
+        <Button
           onClick={() => bulkHunter.mutate()}
-          disabled={bulkHunter.isPending || visible.length === 0}
+          disabled={bulkHunter.isPending || bulkDomainSearch.isPending || visible.length === 0}
         >
           {bulkHunter.isPending ? (
             <Loader2 className="mr-2 size-4 animate-spin" />
