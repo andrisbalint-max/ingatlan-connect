@@ -101,6 +101,13 @@ function FoundCompanies() {
   const [newCategoryValue, setNewCategoryValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProspectRow | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  /** prospect id -> AI web search source URL (in-session, csak ellenőrzéshez) */
+  const [domainSources, setDomainSources] = useState<Record<string, string>>({});
+  /** prospect id -> "nem található automatikusan" jelzés az utolsó AI futásból */
+  const [domainMissing, setDomainMissing] = useState<Set<string>>(new Set());
+  const [domainEditFor, setDomainEditFor] = useState<string | null>(null);
+  const [domainEditValue, setDomainEditValue] = useState("");
+
 
   const isAdmin = profile?.role === "admin";
 
