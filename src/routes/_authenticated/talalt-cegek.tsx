@@ -89,6 +89,8 @@ function FoundCompanies() {
   const { data: profile } = useProfile();
   const runHunter = useServerFn(hunterSearchByDomain);
   const categorize = useServerFn(categorizeOptenProspects);
+  const findDomain = useServerFn(resolveProspectDomain);
+
 
   const [term, setTerm] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
