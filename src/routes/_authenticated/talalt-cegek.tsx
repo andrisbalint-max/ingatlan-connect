@@ -563,16 +563,94 @@ function FoundCompanies() {
                                   row.teaor_description,
                                   row.net_revenue_band,
                                   row.city,
-                                  row.domain || "Nincs domain megadva",
                                 ]
                                   .filter(Boolean)
                                   .join(" · ")}
                               </p>
 
-                              {!row.domain && (
-                                <p className="text-xs text-muted-foreground">
-                                  Nincs domain — Hunter nem tud rá keresni
-                                </p>
+                              {domainEditFor === row.id ? (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Input
+                                    value={domainEditValue}
+                                    onChange={(e) => setDomainEditValue(e.target.value)}
+                                    placeholder="pelda.hu"
+                                    className="h-8 w-56 text-xs"
+                                    aria-label={`${row.company_name} domainje`}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      saveDomain.mutate({ id: row.id, domain: domainEditValue })
+                                    }
+                                    disabled={saveDomain.isPending}
+                                  >
+                                    Mentés
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setDomainEditFor(null)}
+                                  >
+                                    Mégse
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap items-center gap-2 text-sm">
+                                  <Globe
+                                    className="size-4 text-muted-foreground"
+                                    strokeWidth={1.5}
+                                  />
+                                  {row.domain ? (
+                                    <button
+                                      type="button"
+                                      className="text-foreground underline-offset-2 hover:underline"
+                                      onClick={() => {
+                                        setDomainEditFor(row.id);
+                                        setDomainEditValue(row.domain ?? "");
+                                      }}
+                                    >
+                                      {row.domain}
+                                    </button>
+                                  ) : (
+                                    <span className="text-muted-foreground">
+                                      Nincs domain — Hunter nem tud rá keresni
+                                    </span>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-muted-foreground"
+                                    aria-label={`${row.company_name} domain szerkesztése`}
+                                    onClick={() => {
+                                      setDomainEditFor(row.id);
+                                      setDomainEditValue(row.domain ?? "");
+                                    }}
+                                  >
+                                    <Pencil className="size-3.5" strokeWidth={1.5} />
+                                  </Button>
+                                  {row.domain && row.domain_source === "ai_web_search" && (
+                                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                      AI-javaslat — ellenőrizd
+                                    </span>
+                                  )}
+                                  {row.domain &&
+                                    row.domain_source === "ai_web_search" &&
+                                    domainSources[row.id] && (
+                                      <a
+                                        href={domainSources[row.id]}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-xs text-primary underline-offset-2 hover:underline"
+                                      >
+                                        Forrás
+                                      </a>
+                                    )}
+                                  {!row.domain && domainMissing.has(row.id) && (
+                                    <span className="text-xs text-muted-foreground">
+                                      Nem található automatikusan — add meg kézzel.
+                                    </span>
+                                  )}
+                                </div>
                               )}
 
                               {row.decision_maker_email ? (
