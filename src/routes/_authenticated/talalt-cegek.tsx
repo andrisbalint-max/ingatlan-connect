@@ -218,6 +218,98 @@ function FoundCompanies() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  /**
+   * AI web-search domain kitöltés — csak azoknál a soroknál fut, ahol a domain
+   * még NULL, így az Opten importból vagy kézi szerkesztésből származó értéket
+   * soha nem írja felül.
+   */
+  const bulkDomainSearch = useMutation({
+    mutationFn: async () => {
+      const targets = (
+        selected.size > 0 ? visible.filter((r) => selected.has(r.id)) : visible
+      ).filter((row) => !row.domain);
+      setProgress({ done: 0, total: targets.length });
+      let found = 0;
+      let missing = 0;
+      let stopMessage: string | null = null;
+      const sources: Record<string, string> = {};
+      const notFound = new Set<string>();
+
+      for (const [index, row] of targets.entries()) {
+        const result = await findDomain({ data: { prospectId: row.id } });
+        if (result.status === "ok") {
+          found += 1;
+          if (result.sourceUrl) sources[row.id] = result.sourceUrl;
+        } else if (result.status === "not_found") {
+          missing += 1;
+          notFound.add(row.id);
+        } else if (result.status === "no_provider" || result.status === "out_of_credit") {
+          stopMessage = result.message ?? "Az AI-keresés nem futott le.";
+          break;
+        } else if (result.status === "error") {
+          missing += 1;
+          notFound.add(row.id);
+        }
+        setProgress({ done: index + 1, total: targets.length });
+      }
+
+      setDomainSources((prev) => ({ ...prev, ...sources }));
+      setDomainMissing((prev) => new Set([...prev, ...notFound]));
+      return { found, missing, stopMessage };
+    },
+    onSettled: () => {
+      setProgress(null);
+      queryClient.invalidateQueries({ queryKey: ["opten-prospects-all"] });
+    },
+    onSuccess: ({ found, missing, stopMessage }) => {
+      if (stopMessage) {
+        setNotice(stopMessage);
+        toast.info(stopMessage);
+        return;
+      }
+      setNotice(null);
+      toast.success(`${found} domain megtalálva, ${missing} nem található.`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const saveDomain = useMutation({
+    mutationFn: async ({ id, domain }: { id: string; domain: string }) => {
+      const cleaned = domain
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .replace(/\/.*$/, "");
+      const { error } = await supabase
+        .from("opten_prospects")
+        .update({
+          domain: cleaned || null,
+          domain_source: cleaned ? "kezi" : null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ["opten-prospects-all"] });
+      setDomainMissing((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setDomainSources((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setDomainEditFor(null);
+      setDomainEditValue("");
+      toast.success("Domain frissítve.");
+    },
+    onError: () => toast.error("A domain mentése nem sikerült, próbáld újra."),
+  });
+
   const setCategory = useMutation({
     mutationFn: async ({ id, category }: { id: string; category: string }) => {
       const { error } = await supabase
