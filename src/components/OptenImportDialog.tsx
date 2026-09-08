@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import {
+  isValidDomainFormat,
   saveExcelColumnMapping,
   type ExcelColumnMapping,
   type RevenueBand,
@@ -64,7 +65,32 @@ function matchBand(value: unknown, bands: RevenueBand[]): string | null {
 function cleanDomain(value: unknown) {
   const text = String(value ?? "").trim();
   if (!text) return null;
-  return text.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
+  const cleaned = text.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
+  // Csak akkor fogadjuk el domainnek, ha valóban annak formátumú (van benne
+  // pont) — így egy tévesen a "Domain / weboldal" mezőre leképezett oszlop
+  // (pl. irányítószám) nem kerül be érvénytelen értékkel.
+  return isValidDomainFormat(cleaned) ? cleaned : null;
+}
+
+/**
+ * Ha egy oszlop "Domain / weboldal"-ra van leképezve, de a benne lévő értékek
+ * fele+ nem néz ki domainnek, jelezzük — valószínűleg téves a leképezés
+ * (pl. irányítószám-oszlop lett domainre állítva).
+ */
+function domainMappingWarning(
+  header: string,
+  mapping: ExcelColumnMapping,
+  rows: Record<string, unknown>[],
+): string | null {
+  if (mapping[header] !== "domain") return null;
+  const values = rows
+    .map((row) => row[header])
+    .filter((value) => value !== null && value !== undefined && String(value).trim() !== "");
+  if (values.length === 0) return null;
+  const invalid = values.filter((value) => cleanDomain(value) === null).length;
+  return invalid / values.length > 0.5
+    ? "Ez az oszlop nem domainnek/weboldalnak tűnik — ellenőrizd a leképezést."
+    : null;
 }
 
 export function OptenImportDialog({
@@ -235,28 +261,36 @@ export function OptenImportDialog({
           ) : parsed ? (
             <div className="space-y-5">
               <div className="space-y-2">
-                {parsed.headers.map((header) => (
-                  <div key={header} className="flex flex-wrap items-center gap-3">
-                    <span className="min-w-40 flex-1 truncate text-sm text-foreground">{header}</span>
-                    <Select
-                      value={mapping[header] ?? "skip"}
-                      onValueChange={(value) =>
-                        setMapping((prev) => ({ ...prev, [header]: value }))
-                      }
-                    >
-                      <SelectTrigger className="w-64">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FIELD_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
+                {parsed.headers.map((header) => {
+                  const warning = domainMappingWarning(header, mapping, parsed.rows);
+                  return (
+                    <div key={header} className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="min-w-40 flex-1 truncate text-sm text-foreground">
+                          {header}
+                        </span>
+                        <Select
+                          value={mapping[header] ?? "skip"}
+                          onValueChange={(value) =>
+                            setMapping((prev) => ({ ...prev, [header]: value }))
+                          }
+                        >
+                          <SelectTrigger className="w-64">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FIELD_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {warning && <p className="text-xs text-amber-600">{warning}</p>}
+                    </div>
+                  );
+                })}
               </div>
 
               {!nameMapped && (
