@@ -27,7 +27,11 @@ export const Route = createFileRoute("/api/public/auth/microsoft/callback")({
 
         const clientId = process.env["MICROSOFT_CLIENT_ID"];
         const clientSecret = process.env["MICROSOFT_CLIENT_SECRET"];
-        const tenantId = process.env["MICROSOFT_TENANT_ID"] ?? "common";
+                // `||`, nem `??` — lásd a magyarázatot a startOutlookAuth-ban
+        // (src/lib/outlook.functions.ts): egy üres string secret értéket is
+        // "common"-ra kell cserélni, különben érvénytelen tenant-szegmenssel
+        // próbálnánk tokent váltani.
+        const tenantId = process.env["MICROSOFT_TENANT_ID"] || "common";
         if (!clientId || !clientSecret) {
           return new Response("Microsoft credentials are not configured.", { status: 500 });
         }
