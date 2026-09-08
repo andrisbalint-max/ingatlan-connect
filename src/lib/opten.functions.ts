@@ -25,7 +25,7 @@ export interface CategorizeResult {
 }
 
 export interface DomainLookupResult {
-  status: AiCallStatus | "nothing_to_do" | "not_found";
+  status: AiCallStatus | "nothing_to_do" | "not_found" | "timeout";
   message?: string | undefined;
   domain?: string | undefined;
   sourceUrl?: string | undefined;
@@ -350,6 +350,17 @@ export const suggestProjectCategories = createServerFn({ method: "POST" })
 const DOMAIN_SYSTEM_PROMPT =
   'Magyar cégek hivatalos weboldalát azonosító asszisztens vagy. Web keresés alapján add meg a megnevezett magyar cég hivatalos weboldalának domainjét. KIZÁRÓLAG akkor adj meg domaint, ha a keresési eredmények egyértelműen azonosítják — soha ne találj ki, ne tippelj és ne következtess a cégnévből domaint. Válaszod KIZÁRÓLAG JSON: {"domain":"pelda.hu"} vagy {"domain":null,"reason":"nem található"}. A domain protokoll és útvonal nélkül, kisbetűvel, www nélkül szerepeljen.';
 
+/**
+ * Shared domain-format check — requires at least one dot and only
+ * letters/digits/hyphens, so postal codes or other non-domain values (e.g.
+ * from a mis-mapped Excel column) are never accepted as a valid domain.
+ * Used by the AI lookup below, the Excel import dialog, and the "Talált
+ * cégek" page's invalid-domain cleanup.
+ */
+export function isValidDomainFormat(value: string): boolean {
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(value.trim().toLowerCase());
+}
+
 function normalizeDomain(value: unknown): string | null {
   const raw = String(value ?? "").trim().toLowerCase();
   if (!raw || raw === "null" || raw.includes("nem található")) return null;
@@ -359,7 +370,7 @@ function normalizeDomain(value: unknown): string | null {
     .replace(/\/.*$/, "")
     .replace(/[),.;]+$/, "")
     .trim();
-  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(cleaned)) return null;
+  if (!isValidDomainFormat(cleaned)) return null;
   return cleaned;
 }
 
@@ -403,6 +414,7 @@ export const resolveProspectDomain = createServerFn({ method: "POST" })
 
     let text: string;
     let sources: string[] = [];
+    let stopReason: string | undefined;
     try {
       const result = await generateTextWithWebSearch({
         provider: resolved.provider,
@@ -417,10 +429,14 @@ export const resolveProspectDomain = createServerFn({ method: "POST" })
           .filter(Boolean)
           .join("\n"),
         organizationId: prospect.organization_id,
-        maxTokens: 800,
+        // A web-kereséses hívásnál a keresési lépések (tool_use blokkok) is az
+        // output-token keretből fogynak, mielőtt a végső JSON-válasz megszületik —
+        // 800 ehhez gyakran kevés volt, ezért 2000-re emelve.
+        maxTokens: 2000,
       });
       text = result.text;
       sources = result.sources;
+      stopReason = result.stopReason;
     } catch (err) {
       if (isAiOutOfCreditError(err)) {
         return { status: "out_of_credit", message: "Elfogyott az AI-kredit, próbáld később" };
@@ -431,12 +447,28 @@ export const resolveProspectDomain = createServerFn({ method: "POST" })
       };
     }
 
+    // Anthropic egy hosszan futó keresési kört "pause_turn"-nel állíthat meg,
+    // mielőtt a végső válasz megszületne — ez NEM azt jelenti, hogy nincs domain,
+    // csak hogy a keresés túl sokáig tartott. Külön státuszként jelezzük, hogy ne
+    // keveredjen a valódi "nem található" esettel.
+    if (stopReason === "pause_turn") {
+      return { status: "timeout", message: "A keresés túl sokáig tartott, próbáld újra." };
+    }
+
     let domain: string | null = null;
+    let parseFailed = false;
     try {
       const parsed = parseJsonBlock(text) as { domain?: unknown };
       domain = normalizeDomain(parsed.domain);
     } catch {
-      domain = null;
+      parseFailed = true;
+    }
+
+    if (parseFailed) {
+      return {
+        status: "error",
+        message: `Az AI válasza nem értelmezhető: "${text.slice(0, 200)}"`,
+      };
     }
 
     if (!domain) return { status: "not_found" };
