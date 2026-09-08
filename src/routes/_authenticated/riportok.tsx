@@ -5,12 +5,14 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Bot,
   CalendarDays,
-  ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Download,
-  FileDown,
+  FileText,
   Loader2,
+  Newspaper,
   Plus,
+  Printer,
   RefreshCw,
   Upload,
   X,
@@ -29,6 +31,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { runMarketMonitorNow } from "@/lib/market-monitor.functions";
+import { runWeeklyReportNow } from "@/lib/weekly-report.functions";
 import { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,12 +59,12 @@ export const Route = createFileRoute("/_authenticated/riportok")({
       { title: "Riportok — Ipari Ingatlan Platform" },
       {
         name: "description",
-        content: "Piaci riportok, éves idővonal, mutatók grafikonon és napi összefoglalók.",
+        content: "Napi és heti piaci riportok naptár nézetben, nyomtatható formában.",
       },
       { property: "og:title", content: "Riportok — Ipari Ingatlan Platform" },
       {
         property: "og:description",
-        content: "Piaci riportok, éves idővonal, mutatók grafikonon és napi összefoglalók.",
+        content: "Napi és heti piaci riportok naptár nézetben, nyomtatható formában.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -81,6 +84,9 @@ interface ReportRow {
   year: number | null;
   pdf_path: string | null;
   source_url: string | null;
+  report_type: string | null;
+  period_start: string | null;
+  period_end: string | null;
   created_at: string;
 }
 
@@ -92,7 +98,58 @@ interface DigestRow {
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
+/** A platform 2026-ban indult — korábbi évekre nincs adat, ezért nem is mutatjuk. */
+const FIRST_YEAR = 2026;
+const YEARS = Array.from(
+  { length: Math.max(1, CURRENT_YEAR - FIRST_YEAR + 1) },
+  (_, i) => CURRENT_YEAR - i,
+);
+
+const MONTH_NAMES = [
+  "január",
+  "február",
+  "március",
+  "április",
+  "május",
+  "június",
+  "július",
+  "augusztus",
+  "szeptember",
+  "október",
+  "november",
+  "december",
+];
+const WEEKDAY_LABELS = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
+
+const REPORT_TYPE_META: Record
+  string,
+  { label: string; icon: typeof Bot; chipClass: string }
+> = {
+  napi_osszefoglalo: {
+    label: "Napi összegzés",
+    icon: Bot,
+    chipClass: "bg-primary/10 text-primary",
+  },
+  heti_osszefoglalo: {
+    label: "Heti riport",
+    icon: Newspaper,
+    chipClass: "bg-accent text-accent-foreground",
+  },
+  napi_piaci_hir: {
+    label: "Piaci hír",
+    icon: FileText,
+    chipClass: "bg-secondary text-muted-foreground",
+  },
+  kezi: {
+    label: "Kézi riport",
+    icon: Upload,
+    chipClass: "bg-secondary text-muted-foreground",
+  },
+};
+
+function metaFor(report: ReportRow) {
+  return REPORT_TYPE_META[report.report_type ?? "kezi"] ?? REPORT_TYPE_META["kezi"]!;
+}
 
 function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -101,6 +158,10 @@ function toNumber(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function pad(value: number) {
+  return String(value).padStart(2, "0");
 }
 
 /** Very small markdown renderer: headings, bold, links, list items. */
@@ -118,13 +179,13 @@ function renderMarkdown(text: string) {
     const clean = line.replace(/^[-*]\s*/, "");
     const parts = clean.split(/(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)/g).filter(Boolean);
     return (
-      <p key={key} className="text-sm text-muted-foreground">
+      <p key={key} className="text-sm leading-relaxed text-muted-foreground">
         {line.trimStart().startsWith("-") ? "• " : ""}
         {parts.map((part, i) => {
           const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
           if (link) {
             return (
-              <a
+              
                 key={i}
                 href={link[2]}
                 target="_blank"
@@ -150,6 +211,148 @@ function renderMarkdown(text: string) {
   });
 }
 
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Markdown -> nyomtatásra szánt HTML (a fenti renderMarkdown párja). */
+function markdownToPrintHtml(markdown: string) {
+  const inline = (line: string) =>
+    escapeHtml(line)
+      .replace(
+        /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+        '<a href="$2">$1</a>',
+      )
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+
+  const blocks: string[] = [];
+  let listItems: string[] = [];
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      blocks.push(`<ul>${listItems.map((item) => `<li>${item}</li>`).join("")}</ul>`);
+      listItems = [];
+    }
+  };
+
+  for (const rawLine of markdown.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushList();
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      flushList();
+      blocks.push(`<h2>${inline(line.slice(3))}</h2>`);
+      continue;
+    }
+    if (line.startsWith("# ")) {
+      flushList();
+      blocks.push(`<h2>${inline(line.slice(2))}</h2>`);
+      continue;
+    }
+    if (/^[-*]\s+/.test(line)) {
+      listItems.push(inline(line.replace(/^[-*]\s+/, "")));
+      continue;
+    }
+    flushList();
+    blocks.push(`<p>${inline(line)}</p>`);
+  }
+  flushList();
+  return blocks.join("\n");
+}
+
+/**
+ * Nyomtatás / PDF-mentés a böngésző saját nyomtatási párbeszédén keresztül.
+ *
+ * Szándékosan NEM jsPDF-fel készül: a jsPDF beépített betűtípusai
+ * WinAnsi/cp1252 kódolásúak, amiben nincs benne az "ő" és az "ű", ezért a
+ * magyar szöveg hibásan jelenik meg bennük. A böngésző nyomtatása a rendszer
+ * betűtípusait használja, így minden magyar karakter helyes, a szöveg pedig
+ * kijelölhető és kereshető marad a PDF-ben. A felhasználó a nyomtatási
+ * párbeszéden a "Mentés PDF-ként" célt választva kap PDF-et.
+ */
+function printDocument(options: { title: string; subtitle: string; markdown: string }) {
+  const win = window.open("", "_blank", "width=920,height=1000");
+  if (!win) {
+    toast.error(
+      "A böngésző blokkolta a nyomtatási ablakot — engedélyezd a felugró ablakokat ehhez az oldalhoz.",
+    );
+    return;
+  }
+
+  const generated = new Date().toLocaleString("hu-HU");
+  const html = `<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(options.title)}</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    font-size: 11.5pt;
+    line-height: 1.55;
+    color: #14171a;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 18pt; line-height: 1.25; margin: 0 0 6pt; }
+  .subtitle { margin: 0 0 6pt; color: #5b6672; font-size: 10pt; }
+  .rule { height: 2px; background: #00a8b5; margin: 10pt 0 16pt; }
+  h2 { font-size: 12.5pt; margin: 16pt 0 6pt; color: #007c86; page-break-after: avoid; }
+  p { margin: 0 0 9pt; }
+  ul { margin: 0 0 9pt; padding-left: 16pt; }
+  li { margin: 0 0 5pt; }
+  a { color: #007c86; }
+  footer {
+    margin-top: 22pt;
+    padding-top: 8pt;
+    border-top: 1px solid #dfe4e8;
+    color: #7a8794;
+    font-size: 8.5pt;
+  }
+  @media print { .no-print { display: none !important; } }
+  .no-print {
+    margin-bottom: 16pt;
+    padding: 8pt 10pt;
+    background: #f1f5f6;
+    border-radius: 6pt;
+    color: #5b6672;
+    font-size: 9.5pt;
+  }
+</style>
+</head>
+<body onload="window.print()">
+  <div class="no-print">
+    A nyomtatási párbeszédben a cél mezőben válaszd a „Mentés PDF-ként” lehetőséget.
+  </div>
+  <h1>${escapeHtml(options.title)}</h1>
+  <p class="subtitle">${escapeHtml(options.subtitle)}</p>
+  <div class="rule"></div>
+  ${markdownToPrintHtml(options.markdown)}
+  <footer>Ipari Ingatlan Platform — generálva: ${escapeHtml(generated)}</footer>
+</body>
+</html>`;
+
+  win.document.write(html);
+  win.document.close();
+}
+
+function reportSubtitle(report: ReportRow) {
+  const period =
+    report.period_start && report.period_end && report.period_start !== report.period_end
+      ? `${report.period_start} – ${report.period_end}`
+      : (report.period_start ?? report.report_date ?? "");
+  return [period, report.source_name ?? null].filter(Boolean).join(" · ");
+}
+
 function ReportsPage() {
   const { data: profile } = useProfile();
   const isAdmin = profile?.role === "admin";
@@ -171,22 +374,23 @@ function ReportsPage() {
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <PageHeader
           title="Riportok"
-          description="Piaci jelentések, éves trendek és napi összefoglalók."
+          description="Napi összegzések és a hétfői heti riportok naptár nézetben."
         />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {isAdmin && <MarketMonitorButton />}
+          {isAdmin && <WeeklyReportButton />}
           <UploadReportDialog />
         </div>
       </div>
 
       {isLoading ? (
         <div className="space-y-4">
-          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-96 w-full rounded-xl" />
           <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       ) : (
         <div className="space-y-6">
-          <TimelineSection reports={reports ?? []} />
+          <CalendarSection reports={reports ?? []} />
           <ChartSection reports={reports ?? []} />
           <DigestSection />
         </div>
@@ -211,12 +415,11 @@ function MarketMonitorButton() {
       } else {
         toast.success(
           result.newItems > 0
-            ? `${result.newItems} új piaci hír mentve.`
-            : "Nincs új piaci hír ma.",
+            ? `Napi összegzés frissítve — ${result.newItems} új hír feldolgozva.`
+            : "Napi összegzés elkészült — ma nem volt új piaci hír.",
         );
       }
       queryClient.invalidateQueries({ queryKey: ["market-reports"] });
-      queryClient.invalidateQueries({ queryKey: ["daily-digests"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -228,7 +431,50 @@ function MarketMonitorButton() {
       ) : (
         <RefreshCw className="mr-2 size-4" strokeWidth={1.5} />
       )}
-      Frissítés most
+      Napi összegzés most
+    </Button>
+  );
+}
+
+/**
+ * Admin-only manuális trigger a heti riportgenerátorhoz (egyébként minden
+ * hétfőn automatikusan lefut, ld. "weekly-report-generator" cron feladat).
+ * Több AI-hívást indít (általános piaci keresés + partnerenkénti keresés),
+ * ezért egy futtatás eltarthat pár tíz másodpercig.
+ */
+function WeeklyReportButton() {
+  const queryClient = useQueryClient();
+  const run = useServerFn(runWeeklyReportNow);
+
+  const mutation = useMutation({
+    mutationFn: () => run({}),
+    onSuccess: (result) => {
+      if (result.status === "no_provider") {
+        toast.info("AI-szolgáltató nincs beállítva");
+      } else if (result.status === "out_of_credit") {
+        toast.info(
+          "Elfogyott az AI-kredit a futás közben — a riport a meglévő adatokból készült el.",
+        );
+      } else if (result.status === "error") {
+        toast.error(result.message ?? "A heti riport generálása nem sikerült.");
+      } else {
+        toast.success(
+          `Heti riport elkészült — ${result.itemsFound} piaci tétel, ${result.partnerMovementsFound}/${result.partnersChecked} partnernél volt mozgás.`,
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: ["market-reports"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <Button variant="outline" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+      {mutation.isPending ? (
+        <Loader2 className="mr-2 size-4 animate-spin" />
+      ) : (
+        <Newspaper className="mr-2 size-4" strokeWidth={1.5} />
+      )}
+      Heti riport most
     </Button>
   );
 }
@@ -267,13 +513,17 @@ function UploadReportDialog() {
         keyData[row.key.trim()] = numeric ?? row.value.trim();
       }
 
+      const today = new Date().toISOString().slice(0, 10);
       const { error } = await supabase.from("market_reports").insert({
         organization_id: profile.organization_id,
         title: title.trim(),
         source_name: sourceName.trim() || null,
         summary: summary.trim() || null,
         year: Number(year),
-        report_date: new Date().toISOString().slice(0, 10),
+        report_date: today,
+        period_start: today,
+        period_end: today,
+        report_type: "kezi",
         key_data: keyData,
         pdf_path: pdfPath,
       });
@@ -418,99 +668,219 @@ async function downloadReportPdf(path: string) {
   window.open(data.signedUrl, "_blank", "noopener");
 }
 
-function TimelineSection({ reports }: { reports: ReportRow[] }) {
-  const [openYear, setOpenYear] = useState<number | null>(CURRENT_YEAR);
+/**
+ * Naptár nézet: minden nap egy cella, a napi összegzés és (hétfőkön) a heti
+ * riport külön kis kártyaként jelenik meg benne. Kattintásra a riport teljes
+ * szövege nyílik meg, ahonnan nyomtatható / PDF-be mentheto.
+ */
+function CalendarSection({ reports }: { reports: ReportRow[] }) {
+  const today = new Date();
+  const [cursor, setCursor] = useState({
+    year: Math.max(today.getFullYear(), FIRST_YEAR),
+    month: today.getFullYear() >= FIRST_YEAR ? today.getMonth() : 0,
+  });
+  const [selected, setSelected] = useState<ReportRow | null>(null);
 
-  const byYear = useMemo(() => {
-    const map = new Map<number, ReportRow[]>();
-    for (const year of YEARS) map.set(year, []);
+  const byDay = useMemo(() => {
+    const map = new Map<string, ReportRow[]>();
     for (const report of reports) {
-      const year = report.year ?? (report.report_date ? Number(report.report_date.slice(0, 4)) : null);
-      if (year && map.has(year)) map.get(year)!.push(report);
+      if (!report.report_date) continue;
+      const list = map.get(report.report_date) ?? [];
+      list.push(report);
+      map.set(report.report_date, list);
+    }
+    // A heti riport kerüljön előre a hétfői napokon.
+    for (const list of map.values()) {
+      list.sort((a, b) => {
+        const rank = (row: ReportRow) => (row.report_type === "heti_osszefoglalo" ? 0 : 1);
+        return rank(a) - rank(b);
+      });
     }
     return map;
   }, [reports]);
 
+  const firstWeekdayIndex = (new Date(cursor.year, cursor.month, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
+  const todayKey = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+  const canGoBack =
+    cursor.year > FIRST_YEAR || (cursor.year === FIRST_YEAR && cursor.month > 0);
+  const canGoForward =
+    cursor.year < today.getFullYear() ||
+    (cursor.year === today.getFullYear() && cursor.month < today.getMonth());
+
+  const cells: Array<{ key: string; day: number | null }> = [];
+  for (let i = 0; i < firstWeekdayIndex; i += 1) {
+    cells.push({ key: `blank-${i}`, day: null });
+  }
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    cells.push({ key: `day-${day}`, day });
+  }
+
+  const monthReportCount = cells.reduce((total, cell) => {
+    if (!cell.day) return total;
+    const key = `${cursor.year}-${pad(cursor.month + 1)}-${pad(cell.day)}`;
+    return total + (byDay.get(key)?.length ?? 0);
+  }, 0);
+
   return (
     <section className="card-surface p-6">
-      <h2 className="text-base font-semibold text-foreground">Idővonal (utolsó 5 év)</h2>
-      <ul className="mt-4 space-y-2">
-        {YEARS.map((year) => {
-          const items = byYear.get(year) ?? [];
-          const isOpen = openYear === year;
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">
+            {cursor.year}. {MONTH_NAMES[cursor.month]}
+          </h2>
+          <p className="text-xs text-muted-foreground">{monthReportCount} riport ebben a hónapban</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Előző hónap"
+            disabled={!canGoBack}
+            onClick={() =>
+              setCursor((prev) =>
+                prev.month === 0
+                  ? { year: prev.year - 1, month: 11 }
+                  : { year: prev.year, month: prev.month - 1 },
+              )
+            }
+          >
+            <ChevronLeft className="size-4" strokeWidth={1.5} />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Következő hónap"
+            disabled={!canGoForward}
+            onClick={() =>
+              setCursor((prev) =>
+                prev.month === 11
+                  ? { year: prev.year + 1, month: 0 }
+                  : { year: prev.year, month: prev.month + 1 },
+              )
+            }
+          >
+            <ChevronRight className="size-4" strokeWidth={1.5} />
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
+        {WEEKDAY_LABELS.map((label) => (
+          <div key={label} className="py-1">
+            {label}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-1 grid grid-cols-7 gap-1">
+        {cells.map((cell) => {
+          if (!cell.day) {
+            return <div key={cell.key} className="min-h-24 rounded-lg bg-transparent" />;
+          }
+          const key = `${cursor.year}-${pad(cursor.month + 1)}-${pad(cell.day)}`;
+          const dayReports = byDay.get(key) ?? [];
+          const isToday = key === todayKey;
           return (
-            <li key={year} className="rounded-xl border border-border">
-              <button
-                type="button"
-                onClick={() => setOpenYear(isOpen ? null : year)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-              >
-                <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  {isOpen ? (
-                    <ChevronDown className="size-4 text-primary" strokeWidth={1.5} />
-                  ) : (
-                    <ChevronRight className="size-4 text-muted-foreground" strokeWidth={1.5} />
-                  )}
-                  {year}
+            <div
+              key={cell.key}
+              className={`min-h-24 rounded-lg border p-1.5 ${
+                isToday ? "border-primary bg-primary/5" : "border-border bg-secondary/20"
+              }`}
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <span
+                  className={`text-xs ${
+                    isToday ? "font-semibold text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {cell.day}
                 </span>
-                <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs text-accent-foreground">
-                  {items.length} riport
-                </span>
-              </button>
-              {isOpen && (
-                <div className="border-t border-border px-4 py-3">
-                  {items.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      Ebben az évben még nincs riport.
-                    </p>
-                  ) : (
-                    <ul className="space-y-3">
-                      {items.map((report) => (
-                        <li key={report.id} className="rounded-lg bg-secondary/40 p-4">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <p className="text-sm font-medium text-foreground">{report.title}</p>
-                            <span className="text-xs text-muted-foreground">
-                              {report.source_name ?? "—"}
-                              {report.report_date ? ` · ${report.report_date}` : ""}
-                            </span>
-                          </div>
-                          {report.summary && (
-                            <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
-                              {report.summary}
-                            </p>
-                          )}
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {report.pdf_path && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => void downloadReportPdf(report.pdf_path!)}
-                              >
-                                <Download className="mr-1 size-4" strokeWidth={1.5} />
-                                PDF letöltése
-                              </Button>
-                            )}
-                            {report.source_url && (
-                              <a
-                                href={report.source_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-primary underline"
-                              >
-                                Eredeti forrás
-                              </a>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </li>
+              </div>
+              <div className="space-y-1">
+                {dayReports.map((report) => {
+                  const meta = metaFor(report);
+                  const Icon = meta.icon;
+                  return (
+                    <button
+                      key={report.id}
+                      type="button"
+                      onClick={() => setSelected(report)}
+                      title={report.title}
+                      className={`flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-left text-[11px] leading-tight transition hover:opacity-80 ${meta.chipClass}`}
+                    >
+                      <Icon className="size-3 shrink-0" strokeWidth={1.8} />
+                      <span className="truncate">{meta.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
-      </ul>
+      </div>
+
+      {monthReportCount === 0 && (
+        <p className="mt-4 text-sm text-muted-foreground">
+          Ebben a hónapban még nincs riport. A napi összegzés minden reggel, a heti riport minden
+          hétfőn automatikusan elkészül — kézzel a fenti gombokkal is futtathatod.
+        </p>
+      )}
+
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selected?.title}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <>
+              <p className="text-xs text-muted-foreground">{reportSubtitle(selected)}</p>
+              <div className="mt-2">
+                {selected.summary ? (
+                  renderMarkdown(selected.summary)
+                ) : (
+                  <p className="text-sm text-muted-foreground">Ehhez a riporthoz nincs szöveg.</p>
+                )}
+              </div>
+              {selected.source_url && (
+                
+                  href={selected.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-block text-sm text-primary underline"
+                >
+                  Eredeti forrás
+                </a>
+              )}
+              <DialogFooter className="mt-4">
+                {selected.pdf_path && (
+                  <Button
+                    variant="outline"
+                    onClick={() => void downloadReportPdf(selected.pdf_path!)}
+                  >
+                    <Download className="mr-2 size-4" strokeWidth={1.5} />
+                    Feltöltött PDF
+                  </Button>
+                )}
+                <Button
+                  onClick={() =>
+                    printDocument({
+                      title: selected.title,
+                      subtitle: reportSubtitle(selected),
+                      markdown: selected.summary ?? "",
+                    })
+                  }
+                  disabled={!selected.summary}
+                >
+                  <Printer className="mr-2 size-4" strokeWidth={1.5} />
+                  Nyomtatás / PDF
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
@@ -621,25 +991,15 @@ function DigestSection() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  async function exportPdf(digest: DigestRow) {
-    const { default: JsPDF } = await import("jspdf");
-    const doc = new JsPDF({ unit: "pt", format: "a4" });
-    const margin = 48;
-    doc.setFontSize(16);
-    doc.text("Napi összefoglaló", margin, margin);
-    doc.setFontSize(11);
-    doc.text(new Date(digest.date).toLocaleDateString("hu-HU"), margin, margin + 20);
-    doc.setFontSize(11);
-    const body = (digest.content_markdown ?? "").replace(/[*#]/g, "");
-    const lines = doc.splitTextToSize(body, 595 - margin * 2);
-    doc.text(lines, margin, margin + 50);
-    doc.save(`napi-osszefoglalo-${digest.date}.pdf`);
-  }
-
   return (
     <section className="card-surface p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-foreground">Napi összefoglaló</h2>
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Saját jegyzetek</h2>
+          <p className="text-xs text-muted-foreground">
+            Kézi bejegyzések — az automatikus piaci összegzések a fenti naptárban vannak.
+          </p>
+        </div>
         <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
           <Plus className="mr-1 size-4" strokeWidth={1.5} />
           Új bejegyzés
@@ -649,46 +1009,43 @@ function DigestSection() {
       {isLoading ? (
         <Skeleton className="mt-4 h-24 w-full" />
       ) : !digests || digests.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">
-          Még nincs napi összefoglaló. Vedd fel az elsőt kézzel — a napi automatizmus később ide
-          fogja írni a bejegyzéseket.
-        </p>
+        <p className="mt-4 text-sm text-muted-foreground">Még nincs kézi bejegyzés.</p>
       ) : (
         <ul className="mt-4 space-y-3">
-          {digests.map((digest) => {
-            const isAuto = (digest.content_markdown ?? "").includes("## Piaci hírek");
-            return (
-              <li key={digest.id} className="rounded-xl border border-border p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    {isAuto ? (
-                      <Bot className="size-4 text-primary" strokeWidth={1.5} />
-                    ) : (
-                      <CalendarDays className="size-4 text-muted-foreground" strokeWidth={1.5} />
-                    )}
-                    <span className="text-sm font-medium text-foreground">
-                      {new Date(digest.date).toLocaleDateString("hu-HU")}
-                    </span>
-                    <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
-                      {isAuto ? "Automatikus" : "Kézi"}
-                    </span>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => void exportPdf(digest)}>
-                    <FileDown className="mr-1 size-4" strokeWidth={1.5} />
-                    Letöltés PDF-ként
-                  </Button>
+          {digests.map((digest) => (
+            <li key={digest.id} className="rounded-xl border border-border p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="size-4 text-muted-foreground" strokeWidth={1.5} />
+                  <span className="text-sm font-medium text-foreground">
+                    {new Date(digest.date).toLocaleDateString("hu-HU")}
+                  </span>
                 </div>
-                <div className="mt-2">{renderMarkdown(digest.content_markdown ?? "—")}</div>
-              </li>
-            );
-          })}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    printDocument({
+                      title: "Jegyzet",
+                      subtitle: new Date(digest.date).toLocaleDateString("hu-HU"),
+                      markdown: digest.content_markdown ?? "",
+                    })
+                  }
+                >
+                  <Printer className="mr-1 size-4" strokeWidth={1.5} />
+                  Nyomtatás / PDF
+                </Button>
+              </div>
+              <div className="mt-2">{renderMarkdown(digest.content_markdown ?? "—")}</div>
+            </li>
+          ))}
         </ul>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Új napi bejegyzés</DialogTitle>
+            <DialogTitle>Új jegyzet</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -707,7 +1064,7 @@ function DigestSection() {
                 rows={6}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Rövid napi összefoglaló…"
+                placeholder="Rövid jegyzet…"
               />
             </div>
           </div>
