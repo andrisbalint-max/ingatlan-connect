@@ -11,7 +11,12 @@ export const startOutlookAuth = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const clientId = process.env["MICROSOFT_CLIENT_ID"];
-    const tenantId = process.env["MICROSOFT_TENANT_ID"] ?? "common";
+        // Fontos: `||`, nem `??` — ha a MICROSOFT_TENANT_ID titkos érték véletlenül
+    // üres string-re van állítva (nem "nincs beállítva", hanem ténylegesen ""),
+    // a `??` ezt NEM cserélné le "common"-ra, és egy üres tenant-szegmensű,
+    // érvénytelen authorize-URL-t kapnánk (Microsoft AADSTS900023 hibával
+    // utasítaná el, mielőtt a mi kódunk egyáltalán futna).
+    const tenantId = process.env["MICROSOFT_TENANT_ID"] || "common";
     if (!clientId) throw new Error("MICROSOFT_CLIENT_ID is not configured.");
 
     const { data: profile, error: profileError } = await context.supabase
