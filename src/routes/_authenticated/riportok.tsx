@@ -121,7 +121,7 @@ const MONTH_NAMES = [
 ];
 const WEEKDAY_LABELS = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
 
-const REPORT_TYPE_META: Record
+const REPORT_TYPE_META: Record<
   string,
   { label: string; icon: typeof Bot; chipClass: string }
 > = {
@@ -185,7 +185,7 @@ function renderMarkdown(text: string) {
           const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
           if (link) {
             return (
-              
+              <a
                 key={i}
                 href={link[2]}
                 target="_blank"
@@ -844,7 +844,7 @@ function CalendarSection({ reports }: { reports: ReportRow[] }) {
                 )}
               </div>
               {selected.source_url && (
-                
+                <a
                   href={selected.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -857,7 +857,9 @@ function CalendarSection({ reports }: { reports: ReportRow[] }) {
                 {selected.pdf_path && (
                   <Button
                     variant="outline"
-                    onClick={() => void downloadReportPdf(selected.pdf_path!)}
+                    onClick={() => {
+                      if (selected.pdf_path) void downloadReportPdf(selected.pdf_path);
+                    }}
                   >
                     <Download className="mr-2 size-4" strokeWidth={1.5} />
                     Feltöltött PDF

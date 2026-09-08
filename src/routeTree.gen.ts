@@ -27,6 +27,7 @@ import { Route as ApiPublicCronFollowUpGeneratorRouteImport } from './routes/api
 import { Route as ApiPublicCronInboxPollerRouteImport } from './routes/api/public/cron/inbox-poller'
 import { Route as ApiPublicCronMarketMonitorRouteImport } from './routes/api/public/cron/market-monitor'
 import { Route as ApiPublicCronResponseClassifierRouteImport } from './routes/api/public/cron/response-classifier'
+import { Route as ApiPublicCronWeeklyReportRouteImport } from './routes/api/public/cron/weekly-report'
 import { Route as ApiPublicAuthMicrosoftCallbackRouteImport } from './routes/api/public/auth/microsoft/callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -128,6 +129,12 @@ const ApiPublicCronResponseClassifierRoute =
     path: '/api/public/cron/response-classifier',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronWeeklyReportRoute =
+  ApiPublicCronWeeklyReportRouteImport.update({
+    id: '/api/public/cron/weekly-report',
+    path: '/api/public/cron/weekly-report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAuthMicrosoftCallbackRoute =
   ApiPublicAuthMicrosoftCallbackRouteImport.update({
     id: '/api/public/auth/microsoft/callback',
@@ -153,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/inbox-poller': typeof ApiPublicCronInboxPollerRoute
   '/api/public/cron/market-monitor': typeof ApiPublicCronMarketMonitorRoute
   '/api/public/cron/response-classifier': typeof ApiPublicCronResponseClassifierRoute
+  '/api/public/cron/weekly-report': typeof ApiPublicCronWeeklyReportRoute
   '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -173,6 +181,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/inbox-poller': typeof ApiPublicCronInboxPollerRoute
   '/api/public/cron/market-monitor': typeof ApiPublicCronMarketMonitorRoute
   '/api/public/cron/response-classifier': typeof ApiPublicCronResponseClassifierRoute
+  '/api/public/cron/weekly-report': typeof ApiPublicCronWeeklyReportRoute
   '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRoutesById {
@@ -195,6 +204,7 @@ export interface FileRoutesById {
   '/api/public/cron/inbox-poller': typeof ApiPublicCronInboxPollerRoute
   '/api/public/cron/market-monitor': typeof ApiPublicCronMarketMonitorRoute
   '/api/public/cron/response-classifier': typeof ApiPublicCronResponseClassifierRoute
+  '/api/public/cron/weekly-report': typeof ApiPublicCronWeeklyReportRoute
   '/api/public/auth/microsoft/callback': typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 export interface FileRouteTypes {
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/inbox-poller'
     | '/api/public/cron/market-monitor'
     | '/api/public/cron/response-classifier'
+    | '/api/public/cron/weekly-report'
     | '/api/public/auth/microsoft/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/inbox-poller'
     | '/api/public/cron/market-monitor'
     | '/api/public/cron/response-classifier'
+    | '/api/public/cron/weekly-report'
     | '/api/public/auth/microsoft/callback'
   id:
     | '__root__'
@@ -258,6 +270,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/inbox-poller'
     | '/api/public/cron/market-monitor'
     | '/api/public/cron/response-classifier'
+    | '/api/public/cron/weekly-report'
     | '/api/public/auth/microsoft/callback'
   fileRoutesById: FileRoutesById
 }
@@ -272,6 +285,7 @@ export interface RootRouteChildren {
   ApiPublicCronInboxPollerRoute: typeof ApiPublicCronInboxPollerRoute
   ApiPublicCronMarketMonitorRoute: typeof ApiPublicCronMarketMonitorRoute
   ApiPublicCronResponseClassifierRoute: typeof ApiPublicCronResponseClassifierRoute
+  ApiPublicCronWeeklyReportRoute: typeof ApiPublicCronWeeklyReportRoute
   ApiPublicAuthMicrosoftCallbackRoute: typeof ApiPublicAuthMicrosoftCallbackRoute
 }
 
@@ -403,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronResponseClassifierRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/weekly-report': {
+      id: '/api/public/cron/weekly-report'
+      path: '/api/public/cron/weekly-report'
+      fullPath: '/api/public/cron/weekly-report'
+      preLoaderRoute: typeof ApiPublicCronWeeklyReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/auth/microsoft/callback': {
       id: '/api/public/auth/microsoft/callback'
       path: '/api/public/auth/microsoft/callback'
@@ -449,6 +470,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronInboxPollerRoute: ApiPublicCronInboxPollerRoute,
   ApiPublicCronMarketMonitorRoute: ApiPublicCronMarketMonitorRoute,
   ApiPublicCronResponseClassifierRoute: ApiPublicCronResponseClassifierRoute,
+  ApiPublicCronWeeklyReportRoute: ApiPublicCronWeeklyReportRoute,
   ApiPublicAuthMicrosoftCallbackRoute: ApiPublicAuthMicrosoftCallbackRoute,
 }
 export const routeTree = rootRouteImport
