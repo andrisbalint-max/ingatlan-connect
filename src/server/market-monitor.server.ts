@@ -1,13 +1,16 @@
 /**
  * "market-monitor" core logic (server-only).
  *
- * Runs the daily Hungarian industrial real estate market scan for one
- * organization: web search -> dedupe by source_url -> AI summary ->
- * market_reports rows -> today's daily_digests entry.
+ * Napi magyar ipari ingatlanpiaci figyelés EGY szervezetre:
+ * web keresés -> URL alapú deduplikálás az elmúlt 14 nap forrásaihoz képest
+ * -> EGYETLEN, összefüggő magyar napi összegzés -> egy darab market_reports
+ * sor (report_type = 'napi_osszefoglalo', naponta pontosan egy).
  *
- * COST NOTE: this triggers the provider's web search tool roughly 5-10 times
- * per organization per day. Keep that in mind when checking the AI bill, and
- * lower QUERIES or the cron frequency if costs run higher than expected.
+ * Ha ugyanazon a napon többször fut (pl. kézi "Frissítés most"), a napi sort
+ * FRISSÍTI, nem hoz létre újat — így a naptárban minden nap egy összegzés
+ * marad.
+ *
+ * COST NOTE: naponta kb. 1 web-kereséses + 1 sima AI-hívás szervezetenként.
  */
 
 import {
@@ -19,18 +22,59 @@ import {
 
 /** Easily editable search query list. */
 export const QUERIES = (year: number) => [
-  `ipari ingatlan piac Magyarország riport ${year}`,
+  `ipari ingatlan piac Magyarország hírek ${year}`,
+  "ipari park logisztikai csarnok fejlesztés Magyarország",
   "CBRE Magyarország ipari logisztikai piaci jelentés",
   "JLL Magyarország ipari ingatlan piaci elemzés",
   "Cushman & Wakefield Magyarország ipari ingatlan piac",
   "KSH ipari ingatlan statisztika",
 ];
 
-const SEARCH_SYSTEM_PROMPT =
-  "Magyar ipari ingatlanpiaci hírfigyelő asszisztens vagy. Web keresés segítségével keresd meg a legfrissebb (kb. az elmúlt 24-48 órában megjelent) magyar ipari/logisztikai ingatlanpiaci híreket, jelentéseket. Válaszod KIZÁRÓLAG JSON tömb legyen: [{\"title\":\"...\",\"source_name\":\"kiadó neve\",\"source_url\":\"https://...\",\"takeaway\":\"egy soros magyar tanulság\"}]. Csak valóban létező, a keresésben megtalált URL-eket adj vissza. Ha nincs friss hír, adj vissza üres tömböt.";
+/** Ennyi nap forrásait vesszük figyelembe a duplikátumszűrésnél. */
+const DEDUPE_WINDOW_DAYS = 14;
 
-const SUMMARY_SYSTEM_PROMPT =
-  "Magyar ipari ingatlanpiaci elemző vagy. Írj 2-4 mondatos, tárgyilagos magyar összefoglalót a megadott hírről. Számot csak akkor írj, ha az explicit szerepel a megadott szövegben — soha ne becsülj vagy találj ki adatot. Csak az összefoglalót add vissza.";
+const SEARCH_SYSTEM_PROMPT = [
+  "Magyar ipari ingatlanpiaci hírfigyelő asszisztens vagy.",
+  "Web keresés segítségével keresd meg a legfrissebb (kb. az elmúlt 24-48",
+  "órában megjelent) magyar ipari/logisztikai ingatlanpiaci híreket,",
+  "jelentéseket, szabályozási változásokat és fejlesztési bejelentéseket.",
+  'Válaszod KIZÁRÓLAG JSON tömb legyen: [{"title":"...","source_name":"kiadó neve","source_url":"https://...","takeaway":"egy soros magyar tanulság"}].',
+  "Csak valóban létező, a keresésben megtalált URL-eket adj vissza — soha ne",
+  "találj ki forrást vagy adatot. Legfeljebb 10 tételt adj vissza.",
+  "Ha nincs friss hír, adj vissza üres tömböt.",
+].join(" ");
+
+/**
+ * A napi összegzés megfogalmazása. Szándékosan részletes nyelvi elvárás:
+ * a korábbi, gépi fordítás-szagú, nyelvtanilag hibás magyar szöveg miatt.
+ */
+const DAILY_SUMMARY_SYSTEM_PROMPT = [
+  "Magyar ipari ingatlanpiaci elemző vagy, aki anyanyelvi szinten,",
+  "kifogástalan magyar nyelvtannal ír.",
+  "A megadott hírtételekből írj EGYETLEN, összefüggő napi összegzést",
+  "(kb. 150-300 szó) egy ipari ingatlanos bróker csapat számára.",
+  "",
+  "NYELVI ELVÁRÁSOK (kötelező):",
+  "- Helyes magyar nyelvtan, egyeztetés, szórend és toldalékolás.",
+  "- NE fordíts szó szerint angolból; magyar szakmai terminológiát használj",
+  "  (pl. 'bérbeadás', 'üresedési arány', 'bérleti díj', 'raktárkapacitás').",
+  "- Teljes, gördülékeny mondatok; kerüld a tőmondatos felsorolásszerű,",
+  "  darabos szöveget és az angol kifejezéseket (pl. 'take-up', 'prime yield')",
+  "  magyar megfelelő nélkül.",
+  "- Tárgyilagos, tényközlő hangnem, marketingszöveg nélkül.",
+  "",
+  "TARTALMI ELVÁRÁSOK:",
+  "- Egy rövid, összefoglaló nyitó bekezdés: mi a nap legfontosabb üzenete.",
+  "- Utána 1-2 bekezdésben a részletek, tematikus sorrendben.",
+  "- Számot vagy adatot CSAK akkor írj, ha a megadott tételekben explicit",
+  "  szerepel; soha ne becsülj és ne találj ki adatot.",
+  "- Ahol van forrás URL, tedd ki markdown linkként: [forrás](URL).",
+  "- Ha a megadott tételek listája üres, írj egyetlen tárgyilagos mondatot",
+  "  arról, hogy aznap nem jelent meg érdemi, nyilvános piaci hír.",
+  "",
+  "FORMÁTUM: markdown, cím nélkül (a címet a rendszer adja). Alcímeket ne",
+  "használj, ez egy rövid napi összegzés, nem tagolt riport.",
+].join("\n");
 
 export interface MarketMonitorOrgResult {
   organizationId: string;
@@ -46,6 +90,19 @@ interface FoundItem {
   takeaway?: string;
 }
 
+interface StoredSource {
+  title: string;
+  source_name: string;
+  source_url: string;
+}
+
+type SettingsRow = {
+  organization_id: string;
+  openai_api_key: string | null;
+  anthropic_api_key: string | null;
+  preferred_ai_provider: string | null;
+};
+
 function parseJsonArray(text: string): FoundItem[] {
   const cleaned = text.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
   const start = cleaned.indexOf("[");
@@ -59,15 +116,13 @@ function parseJsonArray(text: string): FoundItem[] {
   }
 }
 
-type SettingsRow = {
-  organization_id: string;
-  openai_api_key: string | null;
-  anthropic_api_key: string | null;
-  preferred_ai_provider: string | null;
-};
+function toIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
 
 export async function runMarketMonitorForOrg(
   settings: SettingsRow,
+  now: Date = new Date(),
 ): Promise<MarketMonitorOrgResult> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const organizationId = settings.organization_id;
@@ -78,8 +133,26 @@ export async function runMarketMonitorForOrg(
     return { organizationId, status: "no_provider", newItems: 0 };
   }
 
-  const year = new Date().getFullYear();
-  const today = new Date().toISOString().slice(0, 10);
+  const year = now.getUTCFullYear();
+  const today = toIsoDate(now);
+  const dedupeFrom = new Date(now);
+  dedupeFrom.setUTCDate(now.getUTCDate() - DEDUPE_WINDOW_DAYS);
+
+  // Az elmúlt napok összegzéseiben már feldolgozott forrás-URL-ek.
+  const { data: recentRows } = await supabaseAdmin
+    .from("market_reports")
+    .select("key_data")
+    .eq("organization_id", organizationId)
+    .eq("report_type", "napi_osszefoglalo")
+    .gte("report_date", toIsoDate(dedupeFrom));
+
+  const knownUrls = new Set<string>();
+  for (const row of recentRows ?? []) {
+    const sources = (row.key_data as { sources?: StoredSource[] } | null)?.sources ?? [];
+    for (const source of sources) {
+      if (source?.source_url) knownUrls.add(source.source_url);
+    }
+  }
 
   let found: FoundItem[] = [];
   try {
@@ -111,96 +184,104 @@ export async function runMarketMonitorForOrg(
     };
   }
 
-  const withUrl = found.filter((item) => item.source_url && item.title);
-
-  // Dedupe by market_reports.source_url
-  const urls = withUrl.map((item) => item.source_url as string);
-  const knownUrls = new Set<string>();
-  if (urls.length > 0) {
-    const { data: existing } = await supabaseAdmin
-      .from("market_reports")
-      .select("source_url")
-      .eq("organization_id", organizationId)
-      .in("source_url", urls);
-    for (const row of existing ?? []) {
-      if (row.source_url) knownUrls.add(row.source_url);
-    }
+  const fresh: StoredSource[] = [];
+  const freshItems: FoundItem[] = [];
+  for (const item of found) {
+    if (!item.source_url || !item.title) continue;
+    if (knownUrls.has(item.source_url)) continue;
+    knownUrls.add(item.source_url);
+    freshItems.push(item);
+    fresh.push({
+      title: item.title,
+      source_name: item.source_name ?? "Ismeretlen forrás",
+      source_url: item.source_url,
+    });
   }
 
-  const fresh = withUrl.filter((item) => !knownUrls.has(item.source_url as string));
-  const inserted: FoundItem[] = [];
-
-  for (const item of fresh) {
-    let summary = item.takeaway ?? "";
-    try {
-      const result = await generateText({
-        provider: resolved.provider,
-        apiKey: resolved.apiKey,
-        systemPrompt: SUMMARY_SYSTEM_PROMPT,
-        userPrompt: `Cím: ${item.title}\nKiadó: ${item.source_name ?? "—"}\nLink: ${item.source_url}\nRövid tanulság: ${item.takeaway ?? "—"}`,
-        organizationId,
-        maxTokens: 500,
-      });
-      if (result.text) summary = result.text;
-    } catch (err) {
-      if (isAiOutOfCreditError(err)) {
-        return { organizationId, status: "out_of_credit", newItems: inserted.length };
-      }
-      console.error("[market-monitor] Summary failed:", err);
+  // Egyetlen, összefüggő napi összegzés — akkor is készül, ha nincs új hír,
+  // hogy a naptárban minden napra pontosan egy bejegyzés tartozzon.
+  let summary: string;
+  try {
+    const result = await generateText({
+      provider: resolved.provider,
+      apiKey: resolved.apiKey,
+      systemPrompt: DAILY_SUMMARY_SYSTEM_PROMPT,
+      userPrompt: `Nap: ${today}\nHírtételek (JSON):\n${JSON.stringify(freshItems)}`,
+      organizationId,
+      maxTokens: 1200,
+    });
+    summary = result.text.trim();
+  } catch (err) {
+    if (isAiOutOfCreditError(err)) {
+      return { organizationId, status: "out_of_credit", newItems: 0 };
     }
+    console.error(`[market-monitor] Daily summary failed for ${organizationId}:`, err);
+    return {
+      organizationId,
+      status: "error",
+      newItems: fresh.length,
+      message: err instanceof Error ? err.message : "unknown error",
+    };
+  }
 
+  if (!summary) {
+    summary =
+      fresh.length > 0
+        ? fresh.map((s) => `- **${s.title}** ([forrás](${s.source_url}))`).join("\n")
+        : "Ezen a napon nem jelent meg érdemi, nyilvánosan elérhető piaci hír.";
+  }
+
+  const title = `Napi piaci összegzés — ${today}`;
+
+  // Naponta pontosan egy sor: ha ma már van, frissítjük.
+  const { data: existing } = await supabaseAdmin
+    .from("market_reports")
+    .select("id, key_data")
+    .eq("organization_id", organizationId)
+    .eq("report_type", "napi_osszefoglalo")
+    .eq("report_date", today)
+    .maybeSingle();
+
+  if (existing) {
+    const previous = (existing.key_data as { sources?: StoredSource[] } | null)?.sources ?? [];
+    const merged = [...previous];
+    for (const source of fresh) {
+      if (!merged.some((item) => item.source_url === source.source_url)) merged.push(source);
+    }
+    const { error } = await supabaseAdmin
+      .from("market_reports")
+      .update({
+        title,
+        summary,
+        source_name: "AI napi összegzés",
+        key_data: { sources: merged },
+      })
+      .eq("id", existing.id);
+    if (error) {
+      console.error("[market-monitor] Update failed:", error.message);
+      return { organizationId, status: "error", newItems: fresh.length, message: error.message };
+    }
+  } else {
     const { error } = await supabaseAdmin.from("market_reports").insert({
       organization_id: organizationId,
       report_date: today,
-      source_name: item.source_name ?? "Ismeretlen forrás",
-      title: item.title as string,
+      period_start: today,
+      period_end: today,
+      report_type: "napi_osszefoglalo",
+      source_name: "AI napi összegzés",
+      title,
       summary,
-      source_url: item.source_url as string,
+      source_url: null,
       year,
-      key_data: {},
+      key_data: { sources: fresh },
     });
     if (error) {
       console.error("[market-monitor] Insert failed:", error.message);
-      continue;
+      return { organizationId, status: "error", newItems: fresh.length, message: error.message };
     }
-    inserted.push({ ...item, takeaway: summary });
   }
 
-  // Today's digest entry — always written so the history stays consistent.
-  const section =
-    inserted.length > 0
-      ? [
-          "## Piaci hírek",
-          ...inserted.map(
-            (item) =>
-              `- **${item.title}** — ${(item.takeaway ?? "").split("\n")[0]} ([forrás](${item.source_url}))`,
-          ),
-        ].join("\n")
-      : "## Piaci hírek\n\nNincs új piaci hír ma.";
-
-  const { data: digest } = await supabaseAdmin
-    .from("daily_digests")
-    .select("id, content_markdown")
-    .eq("organization_id", organizationId)
-    .eq("date", today)
-    .maybeSingle();
-
-  if (digest) {
-    const existingContent = digest.content_markdown ?? "";
-    const withoutOldSection = existingContent.split("## Piaci hírek")[0]?.trimEnd() ?? "";
-    await supabaseAdmin
-      .from("daily_digests")
-      .update({ content_markdown: `${withoutOldSection}\n\n${section}`.trim() })
-      .eq("id", digest.id);
-  } else {
-    await supabaseAdmin.from("daily_digests").insert({
-      organization_id: organizationId,
-      date: today,
-      content_markdown: section,
-    });
-  }
-
-  return { organizationId, status: "ok", newItems: inserted.length };
+  return { organizationId, status: "ok", newItems: fresh.length };
 }
 
 export async function runMarketMonitorForAllOrgs(): Promise<MarketMonitorOrgResult[]> {
