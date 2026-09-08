@@ -94,6 +94,7 @@ interface StoredSource {
   title: string;
   source_name: string;
   source_url: string;
+  [key: string]: string;
 }
 
 type SettingsRow = {
