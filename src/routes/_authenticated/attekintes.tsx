@@ -5,16 +5,18 @@ import { AlertTriangle, Clock, FolderKanban, Inbox, Send, Sparkles, X } from "lu
 import { getAiBudgetStatus } from "@/lib/ai-budget.functions";
 
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/attekintes")({
   head: () => ({
     meta: [
-      { title: "Áttekintés — Ipari Ingatlan Platform" },
-      { name: "description", content: "Napi áttekintés: jóváhagyásra váró emailek, válaszok és aktív projektek." },
-      { property: "og:title", content: "Áttekintés — Ipari Ingatlan Platform" },
+      { title: "Áttekintés — Real Estate Connect" },
+      {
+        name: "description",
+        content: "Napi áttekintés: jóváhagyásra váró emailek, válaszok és aktív projektek.",
+      },
+      { property: "og:title", content: "Áttekintés — Real Estate Connect" },
       {
         property: "og:description",
         content: "Napi áttekintés: jóváhagyásra váró emailek, válaszok és aktív projektek.",
@@ -24,13 +26,24 @@ export const Route = createFileRoute("/_authenticated/attekintes")({
   component: Dashboard,
 });
 
+/** A hero fotó a `public/` mappából jön, így nem megy át a bundleren. */
+const HERO_IMAGE_URL = "/hero-warehouse.jpg";
+
 function startOfToday() {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
+function greeting(hour: number) {
+  if (hour < 10) return "Jó reggelt";
+  if (hour < 18) return "Jó napot";
+  return "Jó estét";
+}
+
 function Dashboard() {
+  const now = new Date();
+
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
@@ -71,28 +84,91 @@ function Dashboard() {
 
   return (
     <div>
-      <PageHeader title="Áttekintés" description="A mai nap legfontosabb mutatói." />
+      {/* --- Hero: ipari csarnok fotó, lassú Ken Burns nagyítással --- */}
+      <section
+        className="relative overflow-hidden rounded-2xl shadow-[var(--shadow-hero)]"
+        style={{ minHeight: "clamp(15rem, 34vw, 22rem)" }}
+      >
+        <div
+          aria-hidden
+          className="rec-ken-burns absolute inset-0 bg-primary bg-cover bg-center"
+          style={{ backgroundImage: `url('${HERO_IMAGE_URL}')` }}
+        />
+        {/* Sötétítő gradiens — enélkül a fehér szöveg nem lenne olvasható a fotón. */}
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(100deg, oklch(0.26 0.05 215 / 94%) 0%, oklch(0.3 0.05 210 / 78%) 45%, oklch(0.42 0.07 200 / 42%) 100%)",
+          }}
+        />
 
-      <AiBudgetBanners />
+        <div className="relative flex h-full flex-col justify-end gap-4 p-6 pb-20 sm:p-9 sm:pb-24">
+          <span
+            className="rec-fade-up glass-panel inline-flex w-fit items-center gap-2 px-3 py-1.5 text-xs font-medium text-white"
+            style={{ animationDelay: "80ms" }}
+          >
+            <span aria-hidden className="size-1.5 rounded-full bg-white" />
+            {now.toLocaleDateString("hu-HU", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              weekday: "long",
+            })}
+          </span>
 
+          <div>
+            <p
+              className="rec-fade-up text-sm font-medium text-white/80"
+              style={{ animationDelay: "160ms" }}
+            >
+              {greeting(now.getHours())}
+            </p>
+            <h1
+              className="rec-fade-up mt-1 text-3xl font-semibold tracking-tight text-white sm:text-[40px] sm:leading-[1.1]"
+              style={{ animationDelay: "240ms" }}
+            >
+              Real Estate <span className="font-bold">Connect</span>
+            </h1>
+            <p
+              className="rec-fade-up mt-2 max-w-xl text-sm leading-relaxed text-white/85 sm:text-base"
+              style={{ animationDelay: "320ms" }}
+            >
+              Ipari ingatlanpiaci kereskedelmi platform — a mai nap legfontosabb mutatói egy
+              helyen.
+            </p>
+          </div>
+        </div>
+      </section>
 
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => (
-          <div key={card.label} className="card-surface p-5">
+      {/* --- KPI kártyák: a hero alsó szélére felhúzva, tömör háttérrel a jó olvashatóság miatt --- */}
+      <div className="relative z-10 -mt-14 grid gap-4 px-1 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card, index) => (
+          <div
+            key={card.label}
+            className="card-surface card-lift rec-fade-up p-5"
+            style={{ animationDelay: `${360 + index * 90}ms` }}
+          >
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm text-muted-foreground">{card.label}</p>
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                 <card.icon className="size-4" strokeWidth={1.5} />
               </span>
             </div>
             {isLoading ? (
               <Skeleton className="mt-3 h-9 w-12" />
             ) : (
-              <p className="mt-3 text-3xl font-semibold tabular-nums text-foreground">{card.value ?? 0}</p>
+              <p className="mt-3 text-3xl font-semibold tabular-nums text-foreground">
+                {card.value ?? 0}
+              </p>
             )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-6">
+        <AiBudgetBanners />
       </div>
 
       <NewResponses />
@@ -102,7 +178,7 @@ function Dashboard() {
         <p className="mt-1 text-sm text-muted-foreground">
           Itt fognak megjelenni a legutóbbi email- és válaszesemények.
         </p>
-        <div className="mt-6 rounded-lg border border-dashed border-input px-6 py-12 text-center">
+        <div className="mt-6 rounded-xl border border-dashed border-input bg-secondary/30 px-6 py-12 text-center">
           <p className="text-sm text-muted-foreground">Még nincs megjeleníthető aktivitás.</p>
         </div>
       </section>
@@ -172,7 +248,7 @@ function NewResponses() {
       </div>
       <ul className="mt-4 space-y-3">
         {items.map((item) => (
-          <li key={item.id} className="rounded-lg border border-input bg-background p-4">
+          <li key={item.id} className="card-lift rounded-xl border border-input bg-background p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-foreground">
                 {item.emails_queue?.companies?.name ?? "Ismeretlen cég"}
@@ -211,7 +287,7 @@ function AiBudgetBanners() {
   if (!status) return null;
 
   return (
-    <div className="mb-6 space-y-3">
+    <div className="space-y-3">
       {status.outOfCredit && (
         <div className="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" strokeWidth={1.5} />
@@ -233,7 +309,7 @@ function AiBudgetBanners() {
             type="button"
             aria-label="Bezárás"
             onClick={() => setBudgetDismissed(true)}
-            className="rounded-md p-1 text-amber-700 transition-colors hover:text-amber-900"
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-amber-700 transition-colors hover:bg-amber-100 hover:text-amber-900"
           >
             <X className="size-4" />
           </button>
