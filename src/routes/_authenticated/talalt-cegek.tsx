@@ -22,6 +22,7 @@ import { hunterSearchByDomain } from "@/lib/hunter.functions";
 import {
   categorizeOptenProspects,
   getOptenConfig,
+  isValidDomainFormat,
   resolveProspectDomain,
 } from "@/lib/opten.functions";
 import {
@@ -101,6 +102,7 @@ function FoundCompanies() {
   const [newCategoryValue, setNewCategoryValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProspectRow | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [invalidDomainOpen, setInvalidDomainOpen] = useState(false);
   /** prospect id -> AI web search source URL (in-session, csak ellenőrzéshez) */
   const [domainSources, setDomainSources] = useState<Record<string, string>>({});
   /** prospect id -> "nem található automatikusan" jelzés az utolsó AI futásból */
@@ -178,6 +180,17 @@ function FoundCompanies() {
 
   const allVisibleSelected = visible.length > 0 && visible.every((row) => selected.has(row.id));
 
+  /**
+   * Cégek, amelyeknek van domain-értéke, de az nem néz ki valódi domainnek
+   * (pl. egy múltbeli, tévesen leképezett Excel-importból bekerült
+   * irányítószám). Ezek a sorok láthatatlanul blokkolják az AI domain-keresést
+   * is (mert "van már domainjük") — a törlésük után újra megpróbálhatók.
+   */
+  const invalidDomainRows = useMemo(
+    () => (rows ?? []).filter((row) => row.domain && !isValidDomainFormat(row.domain)),
+    [rows],
+  );
+
   const runCategorize = useMutation({
     mutationFn: () => categorize({ data: undefined as never }),
     onSuccess: (result) => {
@@ -231,6 +244,8 @@ function FoundCompanies() {
       setProgress({ done: 0, total: targets.length });
       let found = 0;
       let missing = 0;
+      let errored = 0;
+      let firstErrorMessage: string | null = null;
       let stopMessage: string | null = null;
       const sources: Record<string, string> = {};
       const notFound = new Set<string>();
@@ -246,29 +261,62 @@ function FoundCompanies() {
         } else if (result.status === "no_provider" || result.status === "out_of_credit") {
           stopMessage = result.message ?? "Az AI-keresés nem futott le.";
           break;
-        } else if (result.status === "error") {
-          missing += 1;
-          notFound.add(row.id);
+        } else if (result.status === "error" || result.status === "timeout") {
+          // Külön számláló a valódi "nem található" választól — ez azt jelzi,
+          // hogy maga a hívás nem futott le rendesen (hiba vagy időtúllépés),
+          // nem azt, hogy az AI biztosan nem talált domaint.
+          errored += 1;
+          if (!firstErrorMessage) {
+            firstErrorMessage = result.message ?? "Ismeretlen hiba történt a domain-keresés közben.";
+          }
         }
         setProgress({ done: index + 1, total: targets.length });
       }
 
       setDomainSources((prev) => ({ ...prev, ...sources }));
       setDomainMissing((prev) => new Set([...prev, ...notFound]));
-      return { found, missing, stopMessage };
+      return { found, missing, errored, firstErrorMessage, stopMessage };
     },
     onSettled: () => {
       setProgress(null);
       queryClient.invalidateQueries({ queryKey: ["opten-prospects-all"] });
     },
-    onSuccess: ({ found, missing, stopMessage }) => {
+    onSuccess: ({ found, missing, errored, firstErrorMessage, stopMessage }) => {
       if (stopMessage) {
         setNotice(stopMessage);
         toast.info(stopMessage);
         return;
       }
       setNotice(null);
-      toast.success(`${found} domain megtalálva, ${missing} nem található.`);
+      toast.success(
+        `${found} domain megtalálva, ${missing} nem található, ${errored} hibával leállt.`,
+      );
+      if (errored > 0 && firstErrorMessage) {
+        toast.info(firstErrorMessage);
+      }
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  /**
+   * Egyszeri tisztítás a korábbi, tévesen leképezett Excel-importokból bekerült
+   * érvénytelen domain-értékekre (pl. irányítószám a "Domain" mezőben) — ezek
+   * nélküle örökre blokkolnák az AI domain-keresést, mivel a rendszer szerint
+   * "már van domainjük".
+   */
+  const clearInvalidDomains = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("opten_prospects")
+        .update({ domain: null, domain_source: null })
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["opten-prospects-all"] });
+      setInvalidDomainOpen(false);
+      toast.success(`${count} érvénytelen domain törölve — futtasd újra a domain-keresést ezeknél.`);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -446,6 +494,26 @@ function FoundCompanies() {
               <Trash2 className="mr-2 size-4" strokeWidth={1.5} />
             )}
             Kiválasztottak törlése
+          </Button>
+        )}
+        {isAdmin && (
+          <Button
+            variant="outline"
+            onClick={() => setInvalidDomainOpen(true)}
+            disabled={invalidDomainRows.length === 0 || clearInvalidDomains.isPending}
+            title={
+              invalidDomainRows.length === 0
+                ? "Nincs érvénytelennek tűnő domain."
+                : "Olyan domain-értékek, amik nem néznek ki weboldalnak (pl. irányítószám egy régi hibás importból)."
+            }
+          >
+            {clearInvalidDomains.isPending ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-2 size-4" strokeWidth={1.5} />
+            )}
+            Érvénytelen domainek törlése
+            {invalidDomainRows.length > 0 ? ` (${invalidDomainRows.length})` : ""}
           </Button>
         )}
         {progress && (
@@ -636,7 +704,7 @@ function FoundCompanies() {
                                   {row.domain &&
                                     row.domain_source === "ai_web_search" &&
                                     domainSources[row.id] && (
-                                      <a
+                                      
                                         href={domainSources[row.id]}
                                         target="_blank"
                                         rel="noreferrer"
@@ -833,6 +901,36 @@ function FoundCompanies() {
               disabled={selected.size === 0 || deleteProspects.isPending}
             >
               {deleteProspects.isPending && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
+              Törlés
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={invalidDomainOpen} onOpenChange={setInvalidDomainOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Érvénytelen domainek törlése</DialogTitle>
+            <DialogDescription>
+              <strong>{invalidDomainRows.length}</strong> cégnél érvénytelennek tűnik a domain
+              érték (pl. nem tartalmaz pontot, mint egy irányítószám) — töröljük ezeket, hogy az
+              AI domain-keresés újra megpróbálhassa őket?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInvalidDomainOpen(false)}>
+              Mégse
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() =>
+                clearInvalidDomains.mutate(invalidDomainRows.map((row) => row.id))
+              }
+              disabled={invalidDomainRows.length === 0 || clearInvalidDomains.isPending}
+            >
+              {clearInvalidDomains.isPending && (
                 <Loader2 className="mr-2 size-4 animate-spin" />
               )}
               Törlés
