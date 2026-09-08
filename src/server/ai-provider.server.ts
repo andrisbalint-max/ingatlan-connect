@@ -56,6 +56,12 @@ export interface GenerateTextResult {
 
 export interface GenerateTextWithWebSearchResult extends GenerateTextResult {
   sources: string[];
+  /**
+   * Anthropic's raw `stop_reason` (e.g. "pause_turn" when a long-running
+   * search turn was paused before the model finished). Undefined for OpenAI,
+   * which doesn't expose an equivalent field the same way.
+   */
+  stopReason?: string;
 }
 
 const OPENAI_MODEL = "gpt-4o-mini";
@@ -386,6 +392,7 @@ export async function generateTextWithWebSearch(
       output_tokens?: number;
       server_tool_use?: { web_search_requests?: number };
     };
+    stop_reason?: string;
   };
 
   const parts: string[] = [];
@@ -416,5 +423,6 @@ export async function generateTextWithWebSearch(
     model,
     sources: [...sources],
     estimatedUsd,
+    ...(json.stop_reason ? { stopReason: json.stop_reason } : {}),
   };
 }
