@@ -704,7 +704,7 @@ function FoundCompanies() {
                                   {row.domain &&
                                     row.domain_source === "ai_web_search" &&
                                     domainSources[row.id] && (
-                                      
+                                      <a
                                         href={domainSources[row.id]}
                                         target="_blank"
                                         rel="noreferrer"
