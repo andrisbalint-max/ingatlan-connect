@@ -249,7 +249,10 @@ export type Database = {
           key_data: Json
           organization_id: string
           pdf_path: string | null
+          period_end: string | null
+          period_start: string | null
           report_date: string | null
+          report_type: string
           source_name: string | null
           source_url: string | null
           summary: string | null
@@ -262,7 +265,10 @@ export type Database = {
           key_data?: Json
           organization_id: string
           pdf_path?: string | null
+          period_end?: string | null
+          period_start?: string | null
           report_date?: string | null
+          report_type?: string
           source_name?: string | null
           source_url?: string | null
           summary?: string | null
@@ -275,7 +281,10 @@ export type Database = {
           key_data?: Json
           organization_id?: string
           pdf_path?: string | null
+          period_end?: string | null
+          period_start?: string | null
           report_date?: string | null
+          report_type?: string
           source_name?: string | null
           source_url?: string | null
           summary?: string | null
