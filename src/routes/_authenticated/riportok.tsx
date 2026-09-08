@@ -844,7 +844,7 @@ function CalendarSection({ reports }: { reports: ReportRow[] }) {
                 )}
               </div>
               {selected.source_url && (
-                
+                <a
                   href={selected.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -857,7 +857,9 @@ function CalendarSection({ reports }: { reports: ReportRow[] }) {
                 {selected.pdf_path && (
                   <Button
                     variant="outline"
-                    onClick={() => void downloadReportPdf(selected.pdf_path!)}
+                    onClick={() => {
+                      if (selected.pdf_path) void downloadReportPdf(selected.pdf_path);
+                    }}
                   >
                     <Download className="mr-2 size-4" strokeWidth={1.5} />
                     Feltöltött PDF
