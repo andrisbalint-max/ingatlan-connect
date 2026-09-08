@@ -17,37 +17,63 @@ const navItems = [
   { to: "/beallitasok", label: "Beállítások" },
 ] as const;
 
+/** "andras.szasz@..." -> "AS" — egyszerű monogram a fejléc profilcsipjéhez. */
+function initialsFromEmail(email: string | null | undefined) {
+  if (!email) return "?";
+  const name = email.split("@")[0] ?? "";
+  const parts = name.split(/[._-]+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]!.charAt(0)}${parts[1]!.charAt(0)}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase() || "?";
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: profile } = useProfile();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
-  const items = profile?.role === "admin" ? [...navItems, { to: "/felhasznalok", label: "Felhasználók" } as const] : navItems;
+  const items =
+    profile?.role === "admin"
+      ? [...navItems, { to: "/felhasznalok", label: "Felhasználók" } as const]
+      : navItems;
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
+    try {
+      window.sessionStorage.removeItem("rec-splash-shown");
+    } catch {
+      // Nem kritikus: legfeljebb nem játszódik le újra a nyitóképernyő.
+    }
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
 
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="w-full bg-primary text-primary-foreground">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
-          <Link to="/attekintes" className="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
-            <Building2 className="size-5" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Ipari Ingatlan Platform</span>
-            <span className="sm:hidden">IIP</span>
+    <div className="app-backdrop min-h-dvh">
+      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-primary/95 text-primary-foreground shadow-[0_1px_0_0_oklch(1_0_0/10%)] backdrop-blur-md supports-[backdrop-filter]:bg-primary/85">
+        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5 sm:px-6">
+          <Link
+            to="/attekintes"
+            className="flex shrink-0 items-center gap-2.5 rounded-lg px-1 py-1 font-semibold tracking-tight transition-opacity hover:opacity-90"
+          >
+            <span className="flex size-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
+              <Building2 className="size-5" strokeWidth={1.5} />
+            </span>
+            <span className="hidden text-[15px] leading-tight sm:inline">
+              Real Estate <span className="font-bold">Connect</span>
+            </span>
+            <span className="text-[15px] font-bold sm:hidden">REC</span>
           </Link>
 
-          <nav className="ml-auto hidden items-center gap-1 lg:flex">
+          <nav className="ml-auto hidden items-center gap-0.5 lg:flex">
             {items.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
-                className="nav-pill hover:bg-primary-hover/40"
+                className="nav-pill hover:bg-white/15"
                 activeProps={{ className: "nav-pill nav-pill-active" }}
               >
                 {item.label}
@@ -56,12 +82,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2 lg:ml-4">
-            <span className="hidden text-sm opacity-80 xl:inline">{profile?.email}</span>
+            <div className="hidden items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 ring-1 ring-white/15 xl:flex">
+              <span
+                aria-hidden
+                className="flex size-7 items-center justify-center rounded-full bg-white/20 text-[11px] font-semibold"
+              >
+                {initialsFromEmail(profile?.email)}
+              </span>
+              <span className="max-w-44 truncate text-xs opacity-90">{profile?.email}</span>
+            </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleSignOut}
-              className="text-primary-foreground hover:bg-primary-hover/40 hover:text-primary-foreground"
+              className="min-h-9 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
               aria-label="Kijelentkezés"
             >
               <LogOut className="size-4" strokeWidth={1.5} />
@@ -70,23 +104,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
-              className="rounded-md p-2 hover:bg-primary-hover/40 lg:hidden"
-              aria-label="Menü"
+              className="flex size-11 items-center justify-center rounded-xl transition-colors hover:bg-white/15 lg:hidden"
+              aria-label={open ? "Menü bezárása" : "Menü megnyitása"}
+              aria-expanded={open}
             >
-              {open ? <X className="size-5" strokeWidth={1.5} /> : <Menu className="size-5" strokeWidth={1.5} />}
+              {open ? (
+                <X className="size-5" strokeWidth={1.5} />
+              ) : (
+                <Menu className="size-5" strokeWidth={1.5} />
+              )}
             </button>
           </div>
         </div>
 
         {open && (
-          <nav className="flex flex-col gap-1 px-4 pb-4 lg:hidden">
+          <nav className="flex flex-col gap-1 border-t border-white/10 px-3 pb-3 pt-2 lg:hidden">
             {items.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
                 onClick={() => setOpen(false)}
-                className="nav-pill hover:bg-primary-hover/40"
-                activeProps={{ className: "nav-pill nav-pill-active" }}
+                className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/15"
+                activeProps={{
+                  className:
+                    "flex min-h-11 items-center rounded-xl px-3 text-sm font-medium bg-white/20 text-white",
+                }}
               >
                 {item.label}
               </Link>
@@ -103,8 +145,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 export function PageHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-8">
-      <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
-      {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+      <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-foreground">
+        {title}
+      </h1>
+      {description && (
+        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      )}
     </div>
   );
 }
