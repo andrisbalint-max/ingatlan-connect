@@ -11,7 +11,7 @@ export const startOutlookAuth = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const clientId = process.env["MICROSOFT_CLIENT_ID"];
-        // Fontos: `||`, nem `??` — ha a MICROSOFT_TENANT_ID titkos érték véletlenül
+    // Fontos: `||`, nem `??` — ha a MICROSOFT_TENANT_ID titkos érték véletlenül
     // üres string-re van állítva (nem "nincs beállítva", hanem ténylegesen ""),
     // a `??` ezt NEM cserélné le "common"-ra, és egy üres tenant-szegmensű,
     // érvénytelen authorize-URL-t kapnánk (Microsoft AADSTS900023 hibával
@@ -159,6 +159,11 @@ export const setupEmailCronJobs = createServerFn({ method: "POST" })
         schedule: "45 5 * * *",
         url: `${publicUrl}/api/public/cron/market-monitor`,
       },
+      {
+        name: "weekly-report-generator",
+        schedule: "15 5 * * 1",
+        url: `${publicUrl}/api/public/cron/weekly-report`,
+      },
     ];
 
 
@@ -182,4 +187,3 @@ export const setupEmailCronJobs = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
-
