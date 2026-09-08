@@ -121,7 +121,7 @@ const MONTH_NAMES = [
 ];
 const WEEKDAY_LABELS = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
 
-const REPORT_TYPE_META: Record
+const REPORT_TYPE_META: Record<
   string,
   { label: string; icon: typeof Bot; chipClass: string }
 > = {
@@ -185,7 +185,7 @@ function renderMarkdown(text: string) {
           const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
           if (link) {
             return (
-              
+              <a
                 key={i}
                 href={link[2]}
                 target="_blank"
