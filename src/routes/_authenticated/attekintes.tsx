@@ -207,9 +207,9 @@ function Dashboard() {
             {who ? `${t(greetingKey(now.getHours()))}, ${who}.` : `${t(greetingKey(now.getHours()))}!`}
           </p>
 
-          <h1 className="mt-1 font-display text-[clamp(2.4rem,5.6vw,4.25rem)] font-medium leading-[1.05] tracking-[-0.015em]">
+          <h1 className="mt-1 text-[clamp(2rem,4.6vw,3.375rem)] font-semibold leading-[1.08] tracking-[-0.03em]">
             <span className="rec-mask-line">
-              <span className="gold-shimmer italic">{t("overview.display")}</span>
+              <span className="gold-shimmer">{t("overview.display")}</span>
             </span>
           </h1>
 
@@ -251,7 +251,7 @@ function Dashboard() {
           style={{ animationDelay: "760ms" }}
         >
           <p className="micro-label text-gold-deep">{t("overview.activity.kicker")}</p>
-          <h2 className="mt-2 font-display text-[27px] font-medium tracking-[-0.01em] text-foreground">
+          <h2 className="mt-2 text-[20px] font-semibold tracking-tight text-foreground">
             {t("overview.activity.title")}
           </h2>
           <hr aria-hidden className="gold-hairline mb-6 mt-5" />
@@ -259,7 +259,7 @@ function Dashboard() {
             <p aria-hidden className="text-[13px] tracking-[0.5em] text-gold">
               ◆ ◆ ◆
             </p>
-            <p className="mt-3.5 font-display text-[19px] italic text-muted-foreground">
+            <p className="mt-3.5 text-[15px] text-muted-foreground">
               {t("overview.activity.empty")}
             </p>
           </div>
@@ -267,7 +267,7 @@ function Dashboard() {
 
         <section className="lux-panel rec-fade-up p-7 sm:px-8" style={{ animationDelay: "860ms" }}>
           <p className="micro-label text-gold-deep">{t("overview.quick.kicker")}</p>
-          <h2 className="mt-2 font-display text-[27px] font-medium tracking-[-0.01em] text-foreground">
+          <h2 className="mt-2 text-[20px] font-semibold tracking-tight text-foreground">
             {t("overview.quick.title")}
           </h2>
           <hr aria-hidden className="gold-hairline mb-2 mt-5" />
@@ -397,7 +397,7 @@ function NewResponses() {
   return (
     <section className="lux-panel mt-6 p-6 sm:px-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 font-display text-[23px] font-medium text-foreground">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
           <Sparkles className="size-4 text-gold-deep" strokeWidth={1.5} />
           {t("overview.responses.title")} ({items.length})
         </h2>
