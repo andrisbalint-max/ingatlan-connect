@@ -404,7 +404,7 @@ function MarketMonitorButton() {
   const run = useServerFn(runMarketMonitorNow);
 
   const mutation = useMutation({
-    mutationFn: () => run({}),
+        mutationFn: () => run({ data: undefined as never }),
     onSuccess: (result) => {
       if (result.status === "no_provider") {
         toast.info("AI-szolgáltató nincs beállítva");
@@ -447,7 +447,7 @@ function WeeklyReportButton() {
   const run = useServerFn(runWeeklyReportNow);
 
   const mutation = useMutation({
-    mutationFn: () => run({}),
+        mutationFn: () => run({ data: undefined as never }),
     onSuccess: (result) => {
       if (result.status === "no_provider") {
         toast.info("AI-szolgáltató nincs beállítva");
