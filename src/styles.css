@@ -22,7 +22,6 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --font-sans: var(--font-inter);
-  --font-display: var(--font-playfair);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
@@ -73,7 +72,6 @@
 :root {
   --radius: 1rem;
   --font-inter: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-playfair: "Playfair Display", Georgia, "Times New Roman", serif;
 
   --background: oklch(1 0 0);
   /* Elefántcsont alap a hideg szürke helyett — ez adja a meleg, prémium hatást. */
