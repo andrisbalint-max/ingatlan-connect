@@ -101,7 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         // Inter a szövegnek, Playfair Display (dőlttel) a nagy címeknek.
         // A css2 API a latin-ext készletet is kiszolgálja, ezért az ő/ű helyes.
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
       },
       {
         rel: "stylesheet",
