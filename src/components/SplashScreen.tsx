@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Building2 } from "lucide-react";
 
 const TOTAL_MS = 2300;
 const REDUCED_MS = 700;
@@ -54,7 +53,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       }}
     >
       <div className="flex flex-col items-center px-6 text-center">
-        <div className="relative mb-7 flex size-16 items-center justify-center">
+        <div className="relative mb-7 flex size-24 items-center justify-center">
           <span
             aria-hidden
             className="rec-pulse-ring absolute inset-0 rounded-full border border-white/60"
@@ -64,9 +63,13 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
             className="rec-pulse-ring absolute inset-0 rounded-full border border-white/40"
             style={{ animationDelay: "800ms" }}
           />
-          <span className="rec-word-in flex size-16 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30">
-            <Building2 className="size-8 text-white" strokeWidth={1.5} />
-          </span>
+          <img
+            src="/logo-rec.svg"
+            alt=""
+            width={96}
+            height={96}
+            className="rec-word-in size-24"
+          />
         </div>
 
         <h1 className="flex flex-wrap items-baseline justify-center gap-x-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
