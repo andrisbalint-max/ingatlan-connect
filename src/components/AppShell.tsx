@@ -1,7 +1,7 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Building2, LogOut, Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -33,6 +33,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  // Az útvonal kulcsként szolgál: váltáskor a tartalom újra csatolódik, így a
+  // belépő animáció minden oldalon lefut, oldalankénti módosítás nélkül.
+  const { pathname } = useLocation();
 
   const items =
     profile?.role === "admin"
@@ -59,9 +62,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             to="/attekintes"
             className="flex shrink-0 items-center gap-2.5 rounded-lg px-1 py-1 font-semibold tracking-tight transition-opacity hover:opacity-90"
           >
-            <span className="flex size-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
-              <Building2 className="size-5" strokeWidth={1.5} />
-            </span>
+            {/* A REC embléma önmagában áll: saját arany gyűrűje van, ezért nem
+                kap külön hátteret vagy keretet. */}
+            <img
+              src="/logo-rec.svg"
+              alt=""
+              width={36}
+              height={36}
+              className="size-9 shrink-0"
+            />
             <span className="hidden text-[15px] leading-tight sm:inline">
               Real Estate <span className="font-bold">Connect</span>
             </span>
@@ -137,19 +146,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        <div key={pathname} className="page-enter">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
 
+/**
+ * Minden oldal fejléce. A cím és a leírás egymás után úszik be — mivel ezt a
+ * komponenst szinte minden oldal használja, ez az egy hely animálja az összes
+ * oldal fejlécét.
+ */
 export function PageHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-8">
-      <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-foreground">
+      <h1 className="rec-fade-up text-[28px] font-semibold leading-tight tracking-tight text-foreground">
         {title}
       </h1>
       {description && (
-        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        <p
+          className="rec-fade-up mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground"
+          style={{ animationDelay: "90ms" }}
+        >
           {description}
         </p>
       )}
