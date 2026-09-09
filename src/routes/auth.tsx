@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Building2, Loader2 } from "lucide-react";
-
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,11 +111,15 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Building2 className="size-5" strokeWidth={1.5} />
-          </div>
-          <h1 className="mt-4 text-xl font-semibold text-foreground">Ipari Ingatlan Platform</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Belső bróker rendszer</p>
+          {/* A teljes, feliratos logó — a nevet maga a kép hordozza, ezért a
+              címsor csak képernyőolvasók számára marad meg. */}
+          <h1 className="sr-only">Real Estate Connect</h1>
+          <img
+            src="/logo-full-onlight.svg"
+            alt="Real Estate Connect"
+            className="h-32 w-auto"
+          />
+          <p className="mt-2 text-sm text-muted-foreground">Belső bróker rendszer</p>
         </div>
 
         <div className="card-surface p-6">
