@@ -1,0 +1,538 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system: prémium B2B felület.
+ *
+ * Alap: elefántcsont (ivory) felület, a márka világoskék (teal) színe a
+ * fejlécen és az interaktív elemeken, arany (gold) mint másodlagos,
+ * "luxus" akcentus: hajszálvonalak, kártyaszegélyek, ikonkeretek.
+ * Betű: Inter mindenhol — letisztult, egységes tipográfia.
+ *
+ * Minden szín szemantikus oklch token — komponensben soha ne legyen fix szín.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --font-sans: var(--font-inter);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-deep: var(--gold-deep);
+  --color-line-warm: var(--line-warm);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --shadow-card: 0 1px 2px 0 oklch(0.2 0.02 220 / 4%), 0 4px 16px -4px oklch(0.2 0.02 220 / 6%);
+  --shadow-elevated: 0 8px 32px -8px oklch(0.2 0.02 220 / 12%);
+  --shadow-hover: 0 2px 4px 0 oklch(0.2 0.02 220 / 5%), 0 12px 32px -8px oklch(0.2 0.02 220 / 12%);
+  --shadow-hero: 0 30px 70px -30px oklch(0.266 0.04 220 / 55%);
+  --shadow-lux: 0 2px 4px 0 oklch(0.247 0.029 223 / 4%), 0 18px 40px -22px oklch(0.247 0.029 223 / 22%);
+  --shadow-panel: 0 1px 2px 0 oklch(0.247 0.029 223 / 3%), 0 14px 34px -24px oklch(0.247 0.029 223 / 18%);
+}
+
+:root {
+  --radius: 1rem;
+  --font-inter: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --background: oklch(1 0 0);
+  /* Elefántcsont alap a hideg szürke helyett — ez adja a meleg, prémium hatást. */
+  --surface: oklch(0.98 0.006 84.6);
+  --foreground: oklch(0.247 0.029 222.8);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.247 0.029 222.8);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.247 0.029 222.8);
+  --primary: oklch(0.657 0.106 205.5);
+  --primary-hover: oklch(0.6 0.1 205.5);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.975 0.006 200);
+  --secondary-foreground: oklch(0.32 0.02 230);
+  --muted: oklch(0.975 0.006 200);
+  --muted-foreground: oklch(0.544 0.034 229.8);
+  --accent: oklch(0.955 0.022 200);
+  --accent-foreground: oklch(0.42 0.07 205);
+  --destructive: oklch(0.58 0.21 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.962 0.008 200);
+  --input: oklch(0.94 0.008 200);
+  --ring: oklch(0.657 0.106 205.5);
+
+  /* Arany akcentus — csak díszítés (vonalak, keretek, ikonok), soha nem
+     hordoz önmagában információt, és nem kerül rá olvasandó apró szöveg. */
+  --gold: oklch(0.734 0.114 86.8);
+  --gold-light: oklch(0.876 0.065 89.6);
+  --gold-deep: oklch(0.596 0.101 85.7);
+  --line-warm: oklch(0.92 0.017 84.6);
+
+  --chart-1: oklch(0.657 0.106 205.5);
+  --chart-2: oklch(0.72 0.09 175);
+  --chart-3: oklch(0.62 0.09 250);
+  --chart-4: oklch(0.734 0.114 86.8);
+  --chart-5: oklch(0.65 0.15 30);
+  --sidebar: oklch(0.98 0.006 84.6);
+  --sidebar-foreground: oklch(0.247 0.029 222.8);
+  --sidebar-primary: oklch(0.657 0.106 205.5);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.955 0.022 200);
+  --sidebar-accent-foreground: oklch(0.42 0.07 205);
+  --sidebar-border: oklch(0.962 0.008 200);
+  --sidebar-ring: oklch(0.657 0.106 205.5);
+}
+
+.dark {
+  --background: oklch(0.19 0.02 230);
+  --surface: oklch(0.22 0.02 230);
+  --foreground: oklch(0.97 0.004 200);
+  --card: oklch(0.23 0.02 230);
+  --card-foreground: oklch(0.97 0.004 200);
+  --popover: oklch(0.23 0.02 230);
+  --popover-foreground: oklch(0.97 0.004 200);
+  --primary: oklch(0.7 0.11 205.5);
+  --primary-hover: oklch(0.75 0.11 205.5);
+  --primary-foreground: oklch(0.16 0.02 230);
+  --secondary: oklch(0.27 0.02 230);
+  --secondary-foreground: oklch(0.97 0.004 200);
+  --muted: oklch(0.27 0.02 230);
+  --muted-foreground: oklch(0.72 0.02 220);
+  --accent: oklch(0.3 0.03 205);
+  --accent-foreground: oklch(0.9 0.05 200);
+  --destructive: oklch(0.65 0.19 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.7 0.11 205.5);
+  --gold: oklch(0.79 0.1 87);
+  --gold-light: oklch(0.9 0.055 90);
+  --gold-deep: oklch(0.68 0.1 86);
+  --line-warm: oklch(1 0 0 / 12%);
+  --sidebar: oklch(0.22 0.02 230);
+  --sidebar-foreground: oklch(0.97 0.004 200);
+  --sidebar-primary: oklch(0.7 0.11 205.5);
+  --sidebar-primary-foreground: oklch(0.16 0.02 230);
+  --sidebar-accent: oklch(0.3 0.03 205);
+  --sidebar-accent-foreground: oklch(0.9 0.05 200);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.7 0.11 205.5);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-foreground);
+    font-family: var(--font-inter);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.015em;
+  }
+}
+
+@utility card-surface {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+@utility nav-pill {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  border-radius: 9999px;
+  padding: 0.5rem 0.75rem;
+  min-height: 2.25rem;
+  font-size: 0.84375rem;
+  font-weight: 500;
+  color: oklch(1 0 0 / 82%);
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+@utility nav-pill-active {
+  background-color: oklch(1 0 0 / 22%);
+  color: oklch(1 0 0);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 30%);
+}
+
+/* ---------------------------------------------------------------------------
+ * Prémium felület: meleg háttérfény, arany szegélyű kártyák, finom
+ * hajszálvonalak. Minden animáció tiszteletben tartja a
+ * `prefers-reduced-motion` beállítást (lásd a fájl végén).
+ * ------------------------------------------------------------------------- */
+
+/** Elefántcsont alap, halvány teal + arany fénnyel. */
+.app-backdrop {
+  background-color: var(--color-surface);
+  background-image:
+    radial-gradient(70rem 34rem at 8% -10%, oklch(0.657 0.106 205.5 / 8%), transparent 70%),
+    radial-gradient(60rem 30rem at 96% 2%, oklch(0.734 0.114 86.8 / 10%), transparent 72%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/** Kártya, ami mutatja, hogy interaktív. */
+.card-lift {
+  transition:
+    box-shadow 220ms ease,
+    transform 220ms ease,
+    border-color 220ms ease;
+}
+
+.card-lift:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+/** Áttekintés hero: fotó fölé kerülő üveg-kártyák. */
+.glass-panel {
+  background-color: oklch(1 0 0 / 12%);
+  border: 1px solid oklch(1 0 0 / 22%);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+/**
+ * Statisztikai kártya arany felső szegéllyel. A szegély dekoráció:
+ * `overflow: hidden` kell hozzá, hogy a lekerekítést kövesse.
+ */
+@utility lux-card {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-line-warm);
+  border-radius: calc(var(--radius) + 2px);
+  box-shadow: var(--shadow-lux);
+}
+
+/** Tartalmi panel — ugyanaz a nyelv, arany szegély nélkül. */
+@utility lux-panel {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-line-warm);
+  border-radius: calc(var(--radius) + 2px);
+  box-shadow: var(--shadow-panel);
+}
+
+/** Apró, ritkított nagybetűs felirat a nagy számok fölé. */
+@utility micro-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/** Arany hajszálvonal: balról telítettből jobbra elhalóan. */
+@utility gold-hairline {
+  height: 1px;
+  border: 0;
+  background-image: linear-gradient(
+    90deg,
+    oklch(0.734 0.114 86.8 / 55%),
+    oklch(0.734 0.114 86.8 / 6%)
+  );
+}
+
+/** Rövid arany vonal cím alá (dísz). */
+@utility gold-rule {
+  height: 1.5px;
+  width: 3.5rem;
+  border: 0;
+  background-image: linear-gradient(90deg, var(--color-gold), oklch(0.734 0.114 86.8 / 0%));
+}
+
+/** Arany felső él a kártyákon (lux-card belsejébe kerül). */
+@utility gold-edge {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  background-image: linear-gradient(
+    90deg,
+    var(--color-gold-deep),
+    var(--color-gold),
+    var(--color-gold-light),
+    var(--color-gold)
+  );
+}
+
+/**
+ * Finom filmszemcse a hero fotó fölé — ez az egy réteg adja a "nyomtatott
+ * katalógus" hatást. SVG zaj, így nincs külön képfájl.
+ */
+@utility grain-overlay {
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.5'/></svg>");
+}
+
+/** Sarkok felé sötétedő maszk a hero fotón. */
+@utility hero-vignette {
+  background-image: radial-gradient(
+    120% 90% at 30% 40%,
+    transparent 40%,
+    oklch(0.18 0.03 220 / 55%) 100%
+  );
+}
+
+/* --- Animációk --- */
+
+@keyframes rec-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rec-ken-burns {
+  from {
+    transform: scale(1.06) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.16) translate3d(-1.2%, -1.6%, 0);
+  }
+}
+
+@keyframes rec-word-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    filter: blur(6px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes rec-sweep {
+  from {
+    transform: translateX(-101%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes rec-splash-out {
+  from {
+    opacity: 1;
+    visibility: visible;
+  }
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes rec-pulse-ring {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+/** Soronkénti "maszkos" beúszás: a szöveg alulról jön be egy kivágás mögül. */
+@keyframes rec-mask-in {
+  from {
+    transform: translateY(108%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/**
+ * Egyszeri arany csillanás a nagy címen. Két háttérréteg: a felső a
+ * végigfutó fény, az alsó a tömör arany alap — az alsó SOHA nem mozdul,
+ * így a szöveg az animáció után is látható marad.
+ */
+@keyframes rec-shimmer {
+  from {
+    background-position:
+      -140% 0,
+      0 0;
+  }
+  to {
+    background-position:
+      240% 0,
+      0 0;
+  }
+}
+
+@keyframes rec-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/** Tartalom belépése alulról — sorban, `animation-delay` inline stílussal. */
+.rec-fade-up {
+  animation: rec-fade-up 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/** Lassú, alig észrevehető nagyítás a hero fotón (Ken Burns). */
+.rec-ken-burns {
+  animation: rec-ken-burns 26s ease-out both;
+}
+
+.rec-word-in {
+  animation: rec-word-in 780ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.rec-sweep {
+  animation: rec-sweep 1500ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+.rec-splash-out {
+  animation: rec-splash-out 620ms ease-in 1600ms both;
+}
+
+.rec-pulse-ring {
+  animation: rec-pulse-ring 2600ms ease-out infinite;
+}
+
+/**
+ * Maszkos sorbeúszás. A külső elem vág, a belső `span` mozog:
+ *   <span class="rec-mask-line"><span>Napi áttekintés</span></span>
+ */
+.rec-mask-line {
+  display: block;
+  overflow: hidden;
+  /* Kis oldalpárna, hogy a szélső betűk ne csorbuljanak a kivágásnál. */
+  padding-inline: 0.06em;
+  margin-inline: -0.06em;
+}
+
+.rec-mask-line > span {
+  display: block;
+  animation: rec-mask-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/**
+ * Arany csillanás a hero címén. A szöveg alapszíne `--gold-light`, a
+ * gradiens csak áthalad rajta — ha a `background-clip: text` nem támogatott,
+ * a szöveg akkor is olvasható marad.
+ */
+.gold-shimmer {
+  color: var(--color-gold-light);
+  background-image:
+    linear-gradient(100deg, transparent 34%, oklch(1 0 0 / 88%) 50%, transparent 64%),
+    linear-gradient(0deg, var(--color-gold-light), var(--color-gold-light));
+  background-size:
+    240% 100%,
+    100% 100%;
+  background-position:
+    -140% 0,
+    0 0;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: rec-shimmer 2400ms ease-in-out 900ms 1 both;
+}
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .gold-shimmer {
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/**
+ * Oldalankénti belépő animáció.
+ *
+ * Az oldal legkülső elemére kerül. Útvonalváltáskor a TanStack Router
+ * lecseréli az oldal komponensét, ezért az animáció magától újra lefut —
+ * NEM használunk `key={pathname}` trükköt, mert az a betöltő csontvázakat
+ * is újraindítja, és ugráló, "bugos" váltást okoz.
+ */
+.page-enter {
+  animation: rec-page-in 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .rec-fade-up,
+  .rec-ken-burns,
+  .rec-word-in,
+  .rec-sweep,
+  .rec-pulse-ring,
+  .rec-mask-line > span,
+  .gold-shimmer {
+    animation: none !important;
+  }
+
+  .rec-splash-out {
+    animation: rec-splash-out 200ms linear 400ms both;
+  }
+
+  .card-lift:hover {
+    transform: none;
+  }
+}
