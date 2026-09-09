@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 
+import { RecLogo } from "@/components/RecLogo";
+import { useT } from "@/lib/i18n";
+
 const TOTAL_MS = 2300;
 const REDUCED_MS = 700;
 
 /**
  * Bejelentkezés utáni animált nyitóképernyő.
  *
- * A rendszer saját teal színére épül, felírja a "Real Estate Connect"
+ * A rendszer saját világoskék színére épül, felírja a "Real Estate Connect"
  * nevet, majd elhalványul és átadja a helyet az Áttekintés oldalnak.
  * Munkamenetenként egyszer fut (a hívó oldal kezeli a sessionStorage-ot).
  *
@@ -15,6 +18,7 @@ const REDUCED_MS = 700;
  */
 export function SplashScreen({ onDone }: { onDone: () => void }) {
   const [leaving, setLeaving] = useState(false);
+  const { t } = useT();
 
   useEffect(() => {
     const reduced =
@@ -39,7 +43,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   return (
     <div
       role="status"
-      aria-label="Real Estate Connect betöltése"
+      aria-label={t("splash.loading")}
       onClick={() => {
         setLeaving(true);
         window.setTimeout(onDone, 180);
@@ -63,13 +67,8 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
             className="rec-pulse-ring absolute inset-0 rounded-full border border-white/40"
             style={{ animationDelay: "800ms" }}
           />
-          <img
-            src="/logo-rec.svg"
-            alt=""
-            width={96}
-            height={96}
-            className="rec-word-in size-24"
-          />
+          {/* Beépített SVG embléma — nem képfájlból jön, ezért mindig megjelenik. */}
+          <RecLogo size={96} className="rec-word-in size-24" title="" />
         </div>
 
         <h1 className="flex flex-wrap items-baseline justify-center gap-x-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
@@ -79,19 +78,16 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
           <span className="rec-word-in" style={{ animationDelay: "260ms" }}>
             Estate
           </span>
-          <span
-            className="rec-word-in font-bold text-white"
-            style={{ animationDelay: "400ms" }}
-          >
+          <span className="rec-word-in font-bold text-white" style={{ animationDelay: "400ms" }}>
             Connect
           </span>
         </h1>
 
         <p
-          className="rec-word-in mt-3 text-sm text-white/80 sm:text-base"
+          className="rec-word-in mt-3 text-sm text-white/85 sm:text-base"
           style={{ animationDelay: "560ms" }}
         >
-          Ipari ingatlan platform
+          {t("splash.tagline")}
         </p>
 
         <div className="mt-8 h-0.5 w-48 overflow-hidden rounded-full bg-white/25">

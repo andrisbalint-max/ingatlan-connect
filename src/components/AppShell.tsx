@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { LogOut, Menu, X } from "lucide-react";
@@ -6,15 +6,18 @@ import { LogOut, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
+import { RecLogo } from "@/components/RecLogo";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useT } from "@/lib/i18n";
 
 const navItems = [
-  { to: "/attekintes", label: "Áttekintés" },
-  { to: "/email-sor", label: "Email sor" },
-  { to: "/crm", label: "CRM" },
-  { to: "/projektek", label: "Projektek" },
-  { to: "/talalt-cegek", label: "Talált cégek" },
-  { to: "/riportok", label: "Riportok" },
-  { to: "/beallitasok", label: "Beállítások" },
+  { to: "/attekintes", label: "nav.attekintes" },
+  { to: "/email-sor", label: "nav.emailSor" },
+  { to: "/crm", label: "nav.crm" },
+  { to: "/projektek", label: "nav.projektek" },
+  { to: "/talalt-cegek", label: "nav.talaltCegek" },
+  { to: "/riportok", label: "nav.riportok" },
+  { to: "/beallitasok", label: "nav.beallitasok" },
 ] as const;
 
 /** "andras.szasz@..." -> "AS" — egyszerű monogram a fejléc profilcsipjéhez. */
@@ -33,13 +36,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  // Az útvonal kulcsként szolgál: váltáskor a tartalom újra csatolódik, így a
-  // belépő animáció minden oldalon lefut, oldalankénti módosítás nélkül.
-  const { pathname } = useLocation();
+  const { t } = useT();
 
   const items =
     profile?.role === "admin"
-      ? [...navItems, { to: "/felhasznalok", label: "Felhasználók" } as const]
+      ? [...navItems, { to: "/felhasznalok", label: "nav.felhasznalok" } as const]
       : navItems;
 
   async function handleSignOut() {
@@ -56,22 +57,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-backdrop min-h-dvh">
-      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-primary/95 text-primary-foreground shadow-[0_1px_0_0_oklch(1_0_0/10%)] backdrop-blur-md supports-[backdrop-filter]:bg-primary/85">
+      {/* Arany hajszálvonal a fejléc alján — a világoskék marad a márkaszín. */}
+      <header className="sticky top-0 z-40 w-full border-b border-gold/35 bg-primary/95 text-primary-foreground backdrop-blur-md supports-[backdrop-filter]:bg-primary/85">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5 sm:px-6">
           <Link
             to="/attekintes"
             className="flex shrink-0 items-center gap-2.5 rounded-lg px-1 py-1 font-semibold tracking-tight transition-opacity hover:opacity-90"
           >
-            {/* A REC embléma önmagában áll: saját arany gyűrűje van, ezért nem
-                kap külön hátteret vagy keretet. */}
-            <img
-              src="/logo-rec.svg"
-              alt=""
-              width={36}
-              height={36}
-              className="size-9 shrink-0"
-            />
-            <span className="hidden text-[15px] leading-tight sm:inline">
+            {/* Beépített (inline) SVG embléma: nem kell képfájlt feltölteni. */}
+            <RecLogo size={36} className="size-9 shrink-0" title="" />
+            <span className="hidden whitespace-nowrap text-[15px] leading-tight sm:inline">
               Real Estate <span className="font-bold">Connect</span>
             </span>
             <span className="text-[15px] font-bold sm:hidden">REC</span>
@@ -85,36 +80,47 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="nav-pill hover:bg-white/15"
                 activeProps={{ className: "nav-pill nav-pill-active" }}
               >
-                {item.label}
+                {t(item.label)}
               </Link>
             ))}
           </nav>
 
           <div className="ml-auto flex items-center gap-2 lg:ml-4">
-            <div className="hidden items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 ring-1 ring-white/15 xl:flex">
+            <LanguageSwitcher />
+            {/*
+              A menü nyolc elem is lehet (adminnál), ezért itt csak a monogram
+              látszik — az email-cím és a "Kijelentkezés" szó csak nagyon széles
+              képernyőn jelenik meg, különben tördelne a fejléc.
+            */}
+            <div
+              className="hidden items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-1 ring-1 ring-white/15 sm:flex 2xl:pr-3"
+              title={profile?.email ?? undefined}
+            >
               <span
                 aria-hidden
                 className="flex size-7 items-center justify-center rounded-full bg-white/20 text-[11px] font-semibold"
               >
                 {initialsFromEmail(profile?.email)}
               </span>
-              <span className="max-w-44 truncate text-xs opacity-90">{profile?.email}</span>
+              <span className="hidden max-w-44 truncate text-xs opacity-90 2xl:inline">
+                {profile?.email}
+              </span>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleSignOut}
               className="min-h-9 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
-              aria-label="Kijelentkezés"
+              aria-label={t("header.signOut")}
             >
               <LogOut className="size-4" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Kijelentkezés</span>
+              <span className="hidden 2xl:inline">{t("header.signOut")}</span>
             </Button>
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
               className="flex size-11 items-center justify-center rounded-xl transition-colors hover:bg-white/15 lg:hidden"
-              aria-label={open ? "Menü bezárása" : "Menü megnyitása"}
+              aria-label={open ? t("header.closeMenu") : t("header.openMenu")}
               aria-expanded={open}
             >
               {open ? (
@@ -139,18 +145,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     "flex min-h-11 items-center rounded-xl px-3 text-sm font-medium bg-white/20 text-white",
                 }}
               >
-                {item.label}
+                {t(item.label)}
               </Link>
             ))}
           </nav>
         )}
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <div key={pathname} className="page-enter">
-          {children}
-        </div>
-      </main>
+      {/*
+        Nincs `key={pathname}` a tartalom körül: az útvonalváltáskor a router
+        magától lecseréli az oldal komponensét, és az oldal saját `.page-enter`
+        animációja fut le. A korábbi kulcsos megoldás minden váltásnál
+        újraépítette a teljes fát, ezért ugrált és villogtak a csontvázak.
+      */}
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</main>
     </div>
   );
 }
