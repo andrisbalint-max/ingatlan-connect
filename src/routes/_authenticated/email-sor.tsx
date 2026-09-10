@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/AppShell";
+import { useT, type MessageKey } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,12 +24,12 @@ import {
 export const Route = createFileRoute("/_authenticated/email-sor")({
   head: () => ({
     meta: [
-      { title: "Email sor — Ipari Ingatlan Platform" },
+      { title: "Email sor — Real Estate Connect" },
       {
         name: "description",
         content: "Jóváhagyásra váró és kiküldött megkereső emailek kezelése.",
       },
-      { property: "og:title", content: "Email sor — Ipari Ingatlan Platform" },
+      { property: "og:title", content: "Email sor — Real Estate Connect" },
       {
         property: "og:description",
         content: "Jóváhagyásra váró és kiküldött megkereső emailek kezelése.",
@@ -55,28 +56,44 @@ type EmailRow = {
   created_at: string;
 };
 
-const statusBadges: Record<EmailStatus, { label: string; pill: string }> = {
-  varakozik: { label: "Várakozik", pill: "bg-amber-50 text-amber-700 border-amber-100" },
-  szerkesztett: { label: "Szerkesztett", pill: "bg-sky-50 text-sky-700 border-sky-100" },
-  jovahagyva: { label: "Jóváhagyva", pill: "bg-teal-50 text-teal-700 border-teal-100" },
-  elkuldot: { label: "Elküldve", pill: "bg-emerald-50 text-emerald-700 border-emerald-100" },
-  elvetve: { label: "Elvetve", pill: "bg-rose-50 text-rose-700 border-rose-100" },
+const statusBadges: Record<EmailStatus, { label: MessageKey; pill: string }> = {
+  varakozik: {
+    label: "emailQueue.status.varakozik",
+    pill: "bg-amber-50 text-amber-700 border-amber-100",
+  },
+  szerkesztett: {
+    label: "emailQueue.status.szerkesztett",
+    pill: "bg-sky-50 text-sky-700 border-sky-100",
+  },
+  jovahagyva: {
+    label: "emailQueue.status.jovahagyva",
+    pill: "bg-teal-50 text-teal-700 border-teal-100",
+  },
+  elkuldot: {
+    label: "emailQueue.status.elkuldot",
+    pill: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  },
+  elvetve: {
+    label: "emailQueue.status.elvetve",
+    pill: "bg-rose-50 text-rose-700 border-rose-100",
+  },
 };
 
 function StatusBadge({ status }: { status: EmailStatus }) {
+  const { t } = useT();
   const badge = statusBadges[status];
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${badge.pill}`}
     >
-      {badge.label}
+      {t(badge.label)}
     </span>
   );
 }
 
-function formatDate(value: string | null) {
+function formatDate(value: string | null, locale: string) {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("hu-HU", {
+  return new Date(value).toLocaleDateString(locale, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -84,6 +101,7 @@ function formatDate(value: string | null) {
 }
 
 function EmailQueuePage() {
+  const { t, locale } = useT();
   const queryClient = useQueryClient();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -189,10 +207,10 @@ function EmailQueuePage() {
       invalidate();
       toast.success(
         variables.status === "jovahagyva"
-          ? "Email jóváhagyva."
+          ? t("emailQueue.toast.approved")
           : variables.status === "elvetve"
-            ? "Email elvetve."
-            : "Állapot frissítve.",
+            ? t("emailQueue.toast.discarded")
+            : t("emailQueue.toast.statusUpdated"),
       );
     },
     onError: (error: Error) => toast.error(error.message),
@@ -214,7 +232,7 @@ function EmailQueuePage() {
     onSuccess: () => {
       setEditingId(null);
       invalidate();
-      toast.success("Módosítások mentve.");
+      toast.success(t("emailQueue.toast.saved"));
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -233,22 +251,21 @@ function EmailQueuePage() {
   return (
     <div>
       <PageHeader
-        title="Email sor"
-        description="Jóváhagyásra váró megkereső emailek és a kiküldési napló."
+        title={t("nav.emailSor")}
+        description={t("emailQueue.description")}
       />
 
       {showBanner && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <p className="flex-1">
-            Outlook nincs bekötve — a jóváhagyott emailek egyelőre nem lesznek automatikusan
-            kiküldve.{" "}
+            {t("emailQueue.banner.outlook")}{" "}
             <Link to="/beallitasok" className="font-medium underline underline-offset-2">
-              Beállítások
+              {t("nav.beallitasok")}
             </Link>
           </p>
           <button
             type="button"
-            aria-label="Banner bezárása"
+            aria-label={t("emailQueue.banner.close")}
             onClick={() => setBannerDismissed(true)}
             className="rounded-md p-1 text-amber-700 transition hover:bg-amber-100"
           >
@@ -259,7 +276,7 @@ function EmailQueuePage() {
 
       <div className="card-surface mb-6 flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-medium text-foreground">
-          {waitingCount} email vár jóváhagyásra
+          {t("emailQueue.waitingCount", { count: waitingCount })}
         </p>
         <Button
           disabled={
@@ -274,7 +291,7 @@ function EmailQueuePage() {
           }
         >
           <CheckCheck className="size-4" strokeWidth={1.5} />
-          Mindet jóváhagyom
+          {t("emailQueue.approveAll")}
         </Button>
       </div>
 
@@ -287,7 +304,7 @@ function EmailQueuePage() {
       ) : queue.length === 0 ? (
         <div className="card-surface px-6 py-16 text-center">
           <p className="text-sm text-muted-foreground">
-            Nincs jóváhagyásra váró email a sorban.
+            {t("emailQueue.empty")}
           </p>
         </div>
       ) : (
@@ -300,10 +317,10 @@ function EmailQueuePage() {
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-base font-semibold text-foreground">
-                      {(email.company_id && companyMap.get(email.company_id)) || "Ismeretlen cég"}
+                      {(email.company_id && companyMap.get(email.company_id)) || t("overview.responses.unknownCompany")}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      {contact ? `${contact.name}${contact.email ? ` · ${contact.email}` : ""}` : "Nincs kapcsolattartó"}
+                      {contact ? `${contact.name}${contact.email ? ` · ${contact.email}` : ""}` : t("crm.noContact")}
                     </p>
                   </div>
                   <StatusBadge status={email.status} />
@@ -311,12 +328,12 @@ function EmailQueuePage() {
 
                 {isEditing ? (
                   <div className="mb-4 space-y-1.5">
-                    <Label htmlFor={`note-${email.id}`}>Miért ő</Label>
+                    <Label htmlFor={`note-${email.id}`}>{t("emailQueue.field.why")}</Label>
                     <Input
                       id={`note-${email.id}`}
                       value={draft.context_note}
                       onChange={(e) => setDraft((d) => ({ ...d, context_note: e.target.value }))}
-                      placeholder="Pl. Tavaly 5.000 m²-t béreltek"
+                      placeholder={t("emailQueue.field.whyPlaceholder")}
                     />
                   </div>
                 ) : (
@@ -327,7 +344,7 @@ function EmailQueuePage() {
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor={`subject-${email.id}`}>Tárgy</Label>
+                    <Label htmlFor={`subject-${email.id}`}>{t("emailQueue.field.subject")}</Label>
                     <Input
                       id={`subject-${email.id}`}
                       value={isEditing ? draft.subject : (email.subject ?? "")}
@@ -336,7 +353,7 @@ function EmailQueuePage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor={`body-${email.id}`}>Szöveg</Label>
+                    <Label htmlFor={`body-${email.id}`}>{t("emailQueue.field.body")}</Label>
                     <Textarea
                       id={`body-${email.id}`}
                       rows={8}
@@ -355,10 +372,10 @@ function EmailQueuePage() {
                         onClick={() => saveEdit.mutate(email.id)}
                       >
                         <Check className="size-4" strokeWidth={1.5} />
-                        Mentés
+                        {t("common.save")}
                       </Button>
                       <Button variant="outline" onClick={() => setEditingId(null)}>
-                        Mégse
+                        {t("common.cancel")}
                       </Button>
                     </>
                   ) : (
@@ -370,11 +387,11 @@ function EmailQueuePage() {
                         }
                       >
                         <Check className="size-4" strokeWidth={1.5} />
-                        {email.status === "szerkesztett" ? "Elfogadás" : "Jóváhagyás"}
+                        {email.status === "szerkesztett" ? t("emailQueue.accept") : t("emailQueue.approve")}
                       </Button>
                       <Button variant="outline" onClick={() => startEdit(email)}>
                         <Pencil className="size-4" strokeWidth={1.5} />
-                        Szerkesztés
+                        {t("emailQueue.edit")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -383,7 +400,7 @@ function EmailQueuePage() {
                         onClick={() => setStatus.mutate({ ids: [email.id], status: "elvetve" })}
                       >
                         <X className="size-4" strokeWidth={1.5} />
-                        Elvet
+                        {t("common.discard")}
                       </Button>
                     </>
                   )}
@@ -395,22 +412,22 @@ function EmailQueuePage() {
       )}
 
       <section className="mt-10">
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Kiküldött emailek</h2>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">{t("emailQueue.sentTitle")}</h2>
         <div className="card-surface overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Címzett</TableHead>
-                <TableHead>Tárgy</TableHead>
-                <TableHead>Állapot</TableHead>
-                <TableHead className="text-right">Dátum</TableHead>
+                <TableHead>{t("emailQueue.table.recipient")}</TableHead>
+                <TableHead>{t("emailQueue.field.subject")}</TableHead>
+                <TableHead>{t("emailQueue.table.status")}</TableHead>
+                <TableHead className="text-right">{t("emailQueue.table.date")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {log.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
-                    Még nincs feldolgozott email.
+                    {t("emailQueue.table.empty")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -419,7 +436,7 @@ function EmailQueuePage() {
                   return (
                     <TableRow key={email.id}>
                       <TableCell className="font-medium">
-                        {(email.company_id && companyMap.get(email.company_id)) || "Ismeretlen cég"}
+                        {(email.company_id && companyMap.get(email.company_id)) || t("overview.responses.unknownCompany")}
                         {contact && (
                           <span className="block text-xs font-normal text-muted-foreground">
                             {contact.name}
@@ -431,7 +448,7 @@ function EmailQueuePage() {
                         <StatusBadge status={email.status} />
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
-                        {formatDate(email.sent_at ?? email.approved_at ?? email.created_at)}
+                        {formatDate(email.sent_at ?? email.approved_at ?? email.created_at, locale)}
                       </TableCell>
                     </TableRow>
                   );
