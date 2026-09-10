@@ -10,7 +10,7 @@
  * Alap: elefántcsont (ivory) felület, a márka világoskék (teal) színe a
  * fejlécen és az interaktív elemeken, arany (gold) mint másodlagos,
  * "luxus" akcentus: hajszálvonalak, kártyaszegélyek, ikonkeretek.
- * Betűk: Inter a szövegnek, Playfair Display a nagy címeknek.
+ * Betű: Inter mindenhol — letisztult, egységes tipográfia.
  *
  * Minden szín szemantikus oklch token — komponensben soha ne legyen fix szín.
  */
@@ -422,6 +422,36 @@
   }
 }
 
+/**
+ * Fordított Ken Burns: benagyítva indul és lassan TÁVOLODIK, a végén a
+ * teljes kép látszik. A záró állapot 1.02-es nagyítás, nem 1.0 — így az
+ * elmozdulás közben sem bukkan elő a kép széle.
+ */
+@keyframes rec-ken-burns-out {
+  from {
+    transform: scale(1.2) translate3d(-1.4%, -1.8%, 0);
+  }
+  to {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+}
+
+/**
+ * Lélegző naplemente-fény a CRM háttérfotón. `screen` keveréssel világít,
+ * ezért a fotó eredeti színeit erősíti, nem takarja.
+ */
+@keyframes rec-sun-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
+  }
+}
+
 @keyframes rec-page-in {
   from {
     opacity: 0;
@@ -459,6 +489,14 @@
   animation: rec-pulse-ring 2600ms ease-out infinite;
 }
 
+.rec-ken-burns-out {
+  animation: rec-ken-burns-out 14s ease-out both;
+}
+
+.rec-sun-breathe {
+  animation: rec-sun-breathe 7s ease-in-out infinite;
+}
+
 /**
  * Maszkos sorbeúszás. A külső elem vág, a belső `span` mozog:
  *   <span class="rec-mask-line"><span>Napi áttekintés</span></span>
@@ -466,9 +504,9 @@
 .rec-mask-line {
   display: block;
   overflow: hidden;
-  /* A dőlt serif betűk túlnyúlnának a kivágáson: kis oldalpárna. */
-  padding-inline: 0.08em;
-  margin-inline: -0.08em;
+  /* Kis oldalpárna, hogy a szélső betűk ne csorbuljanak a kivágásnál. */
+  padding-inline: 0.06em;
+  margin-inline: -0.06em;
 }
 
 .rec-mask-line > span {
@@ -520,10 +558,12 @@
   .page-enter,
   .rec-fade-up,
   .rec-ken-burns,
+  .rec-ken-burns-out,
   .rec-word-in,
   .rec-sweep,
   .rec-pulse-ring,
   .rec-mask-line > span,
+  .rec-sun-breathe,
   .gold-shimmer {
     animation: none !important;
   }

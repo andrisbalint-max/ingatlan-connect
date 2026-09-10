@@ -5,7 +5,6 @@ import { Building2, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader } from "@/components/AppShell";
 import { CompanyDetailPanel, type CompanyRow } from "@/components/CompanyDetailPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,15 +28,18 @@ import {
 } from "@/components/ui/select";
 import { useProfile } from "@/hooks/useProfile";
 
+/** A hero fotó a `public/` mappából jön, így nem megy át a bundleren. */
+const HERO_IMAGE_URL = "/hero-crm.jpg";
+
 export const Route = createFileRoute("/_authenticated/crm")({
   head: () => ({
     meta: [
-      { title: "CRM — Ipari Ingatlan Platform" },
+      { title: "CRM — Real Estate Connect" },
       {
         name: "description",
         content: "Cégek és kapcsolattartók nyilvántartása a magyar ipari ingatlanpiacon.",
       },
-      { property: "og:title", content: "CRM — Ipari Ingatlan Platform" },
+      { property: "og:title", content: "CRM — Real Estate Connect" },
       {
         property: "og:description",
         content: "Cégek és kapcsolattartók nyilvántartása a magyar ipari ingatlanpiacon.",
@@ -212,15 +214,83 @@ function CrmPage() {
   const selected = (companies ?? []).find((company) => company.id === selectedId) ?? null;
 
   return (
-    <div>
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
-        <PageHeader title="CRM" description="Cégek, kapcsolattartók és kontaktkeresés." />
-        <Button onClick={() => setOpenNew(true)}>
+    <div className="page-enter relative isolate">
+      {/*
+        Teljes oldalas háttérfotó, ugyanaz a felépítés, mint a Projekteknél:
+        fotó -> filmszemcse -> oldalirányú sötétítés -> lefelé olvadó fátyol.
+        Az oldalirányú sötétítés csak a BAL oldalt fogja, ahol a cím van, így
+        a jobb oldali naplemente megmarad, a fehér szöveg mégis olvasható.
+        A fátyol megállói pixelben vannak és a réteg magassága fix, ezért a
+        fotó mindig ugyanott olvad át — kevés és sok cég esetén is.
+      */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem] overflow-hidden rounded-[1.625rem]">
+        {/* Fordított mozgás: benagyítva indul és 14 másodperc alatt
+            távolodik, így a végén a teljes raktár és a naplemente látszik. */}
+        <div
+          className="rec-ken-burns-out absolute inset-0 bg-primary bg-cover bg-center"
+          style={{ backgroundImage: `url('${HERO_IMAGE_URL}')` }}
+        />
+        <div className="grain-overlay absolute inset-0" />
+        {/* Oldalirányú sötétítés csak a cím alatt, hogy a raktár és a
+            naplemente a jobb oldalon szabadon látszódjon. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(100deg, oklch(0.14 0.03 250 / 58%) 0%, oklch(0.16 0.03 245 / 22%) 42%, transparent 62%)",
+          }}
+        />
+        {/* Lélegző naplemente-fény a nap körül. */}
+        <div
+          className="rec-sun-breathe absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(24rem 17rem at 85% 23%, oklch(0.88 0.17 64 / 60%), oklch(0.8 0.15 50 / 24%) 45%, transparent 72%)",
+            mixBlendMode: "screen",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(180deg, oklch(0.18 0.03 240 / 16%) 0px, oklch(0.2 0.03 235 / 20%) 150px, oklch(0.2 0.03 235 / 36%) 240px, oklch(0.24 0.04 230 / 40%) 430px, oklch(0.98 0.006 84.6 / 72%) 490px, oklch(0.98 0.006 84.6) 580px)",
+          }}
+        />
+      </div>
+
+      <div className="flex flex-col justify-end gap-6 px-1 pb-2 pt-28 sm:flex-row sm:items-end sm:justify-between sm:px-4 sm:pt-56">
+        <div>
+          <p
+            className="rec-fade-up micro-label flex items-center gap-2.5 text-white/80"
+            style={{ animationDelay: "80ms" }}
+          >
+            <span aria-hidden className="size-[5px] rounded-full bg-gold" />
+            Ügyfélkapcsolatok
+          </p>
+          <h1 className="mt-3 text-[clamp(1.75rem,3.6vw,2.75rem)] font-semibold leading-[1.1] tracking-[-0.03em]">
+            <span className="rec-mask-line">
+              <span className="gold-shimmer">CRM</span>
+            </span>
+          </h1>
+          <hr aria-hidden className="gold-rule mt-5" />
+          <p
+            className="rec-fade-up mt-4 max-w-xl text-sm leading-relaxed text-white/90"
+            style={{ animationDelay: "480ms" }}
+          >
+            Cégek, kapcsolattartók és kontaktkeresés.
+          </p>
+        </div>
+
+        <Button
+          onClick={() => setOpenNew(true)}
+          className="rec-fade-up min-h-11 shrink-0 bg-white text-foreground shadow-md hover:bg-white/90"
+          style={{ animationDelay: "560ms" }}
+        >
           <Plus className="mr-1.5 size-4" /> Új cég
         </Button>
       </div>
 
-      <div className="card-surface mb-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+      <div className="lux-panel mb-6 mt-10 flex flex-col gap-3 p-4 shadow-[var(--shadow-lux)] sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
