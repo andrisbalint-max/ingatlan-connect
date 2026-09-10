@@ -149,7 +149,7 @@ function CrmPage() {
   });
 
   const meta = useMemo(() => {
-    const byCompany = new Map
+    const byCompany = new Map<
       string,
       {
         pending: number;
