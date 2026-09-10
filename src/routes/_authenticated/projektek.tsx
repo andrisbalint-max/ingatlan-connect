@@ -131,7 +131,18 @@ function Projects() {
         fotó mindig ugyanott olvad át, és a réteg alsó széle sosem látszik
         vágásként — sem kevés, sem sok projekt esetén.
       */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[40rem] overflow-hidden rounded-[1.625rem]">
+        {/*
+          A lekerekítést `clip-path` végzi, nem `overflow: hidden`.
+          Ok: a Safari (WebKit) az animált, saját rétegre kerülő gyereket nem
+          vágja a szülő lekerekített szélével — a mozgás alatt szögletes marad,
+          és csak az animáció végén kerekedik le. A `clip-path` a kompozitált
+          gyerekekre is érvényes, ezért a sarok az első képkockától kerek.
+        */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[40rem] rounded-[1.625rem]"
+        style={{ clipPath: "inset(0 round 1.625rem)" }}
+      >
         <div
           className="rec-ken-burns absolute inset-0 bg-primary bg-cover bg-center"
           style={{ backgroundImage: `url('${HERO_IMAGE_URL}')` }}

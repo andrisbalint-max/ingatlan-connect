@@ -223,7 +223,18 @@ function CrmPage() {
         A fátyol megállói pixelben vannak és a réteg magassága fix, ezért a
         fotó mindig ugyanott olvad át — kevés és sok cég esetén is.
       */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem] overflow-hidden rounded-[1.625rem]">
+        {/*
+          A lekerekítést `clip-path` végzi, nem `overflow: hidden`.
+          Ok: a Safari (WebKit) az animált, saját rétegre kerülő gyereket nem
+          vágja a szülő lekerekített szélével — a mozgás alatt szögletes marad,
+          és csak az animáció végén kerekedik le. A `clip-path` a kompozitált
+          gyerekekre is érvényes, ezért a sarok az első képkockától kerek.
+        */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem] rounded-[1.625rem]"
+        style={{ clipPath: "inset(0 round 1.625rem)" }}
+      >
         {/* Fordított mozgás: benagyítva indul és 14 másodperc alatt
             távolodik, így a végén a teljes raktár és a naplemente látszik. */}
         <div

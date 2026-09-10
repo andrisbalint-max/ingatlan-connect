@@ -153,9 +153,17 @@ function Dashboard() {
   return (
     <div className="page-enter">
       {/* --- Hero: ipari csarnok fotó, filmszemcsével és lassú Ken Burns nagyítással --- */}
+      {/*
+        A lekerekítést itt is `clip-path` végzi: a Safari az animált hero fotót
+        nem vágja a szülő lekerekített szélével, ezért `overflow: hidden`-nel a
+        sarok csak az animáció végén kerekedne le.
+      */}
       <section
-        className="relative overflow-hidden rounded-[1.625rem] shadow-[var(--shadow-hero)]"
-        style={{ minHeight: "clamp(23rem, 42vw, 29.5rem)" }}
+        className="relative rounded-[1.625rem] shadow-[var(--shadow-hero)]"
+        style={{
+          minHeight: "clamp(23rem, 42vw, 29.5rem)",
+          clipPath: "inset(0 round 1.625rem)",
+        }}
       >
         <div
           aria-hidden
