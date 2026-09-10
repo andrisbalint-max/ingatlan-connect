@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProfile } from "@/hooks/useProfile";
+import { useT, type MessageKey } from "@/lib/i18n";
 
 /** A hero fotó a `public/` mappából jön, így nem megy át a bundleren. */
 const HERO_IMAGE_URL = "/hero-crm.jpg";
@@ -51,24 +52,24 @@ export const Route = createFileRoute("/_authenticated/crm")({
 
 type BadgeKind = "reagalt" | "varakozik" | "nincs_valasz" | "lezarva";
 
-const badgeStyles: Record<BadgeKind, { label: string; dot: string; pill: string }> = {
+const badgeStyles: Record<BadgeKind, { label: MessageKey; dot: string; pill: string }> = {
   reagalt: {
-    label: "Reagált",
+    label: "crm.status.reagalt",
     dot: "bg-emerald-500",
     pill: "bg-emerald-50 text-emerald-700 border-emerald-100",
   },
   varakozik: {
-    label: "Várakozik",
+    label: "crm.status.varakozik",
     dot: "bg-amber-500",
     pill: "bg-amber-50 text-amber-700 border-amber-100",
   },
   nincs_valasz: {
-    label: "Nincs válasz",
+    label: "crm.status.nincsValasz",
     dot: "bg-slate-400",
     pill: "bg-slate-50 text-slate-600 border-slate-200",
   },
   lezarva: {
-    label: "Lezárva",
+    label: "crm.status.lezarva",
     dot: "bg-rose-500",
     pill: "bg-rose-50 text-rose-700 border-rose-100",
   },
@@ -77,6 +78,7 @@ const badgeStyles: Record<BadgeKind, { label: string; dot: string; pill: string 
 const emptyForm = { name: "", domain: "", industry: "", city: "", notes: "" };
 
 function CrmPage() {
+  const { t, locale } = useT();
   const queryClient = useQueryClient();
   const { data: profile } = useProfile();
 
@@ -126,7 +128,7 @@ function CrmPage() {
 
   const createCompany = useMutation({
     mutationFn: async () => {
-      if (!profile) throw new Error("Nincs betöltve a profil.");
+      if (!profile) throw new Error(t("crm.error.noProfile"));
       const { error } = await supabase.from("companies").insert({
         organization_id: profile.organization_id,
         name: form.name.trim(),
@@ -138,7 +140,7 @@ function CrmPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Cég létrehozva.");
+      toast.success(t("crm.toast.created"));
       setForm(emptyForm);
       setOpenNew(false);
       queryClient.invalidateQueries({ queryKey: ["companies"] });
@@ -147,7 +149,7 @@ function CrmPage() {
   });
 
   const meta = useMemo(() => {
-    const byCompany = new Map<
+    const byCompany = new Map
       string,
       {
         pending: number;
@@ -222,14 +224,11 @@ function CrmPage() {
         a jobb oldali naplemente megmarad, a fehér szöveg mégis olvasható.
         A fátyol megállói pixelben vannak és a réteg magassága fix, ezért a
         fotó mindig ugyanott olvad át — kevés és sok cég esetén is.
+
+        A lekerekítést `clip-path` végzi, nem `overflow: hidden`: a Safari az
+        animált, saját rétegre kerülő gyereket nem vágja a szülő lekerekített
+        szélével, ezért a sarok csak az animáció végén kerekedne le.
       */}
-        {/*
-          A lekerekítést `clip-path` végzi, nem `overflow: hidden`.
-          Ok: a Safari (WebKit) az animált, saját rétegre kerülő gyereket nem
-          vágja a szülő lekerekített szélével — a mozgás alatt szögletes marad,
-          és csak az animáció végén kerekedik le. A `clip-path` a kompozitált
-          gyerekekre is érvényes, ezért a sarok az első képkockától kerek.
-        */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem] rounded-[1.625rem]"
@@ -276,7 +275,7 @@ function CrmPage() {
             style={{ animationDelay: "80ms" }}
           >
             <span aria-hidden className="size-[5px] rounded-full bg-gold" />
-            Ügyfélkapcsolatok
+            {t("crm.kicker")}
           </p>
           <h1 className="mt-3 text-[clamp(1.75rem,3.6vw,2.75rem)] font-semibold leading-[1.1] tracking-[-0.03em]">
             <span className="rec-mask-line">
@@ -288,7 +287,7 @@ function CrmPage() {
             className="rec-fade-up mt-4 max-w-xl text-sm leading-relaxed text-white/90"
             style={{ animationDelay: "480ms" }}
           >
-            Cégek, kapcsolattartók és kontaktkeresés.
+            {t("crm.description")}
           </p>
         </div>
 
@@ -297,7 +296,7 @@ function CrmPage() {
           className="rec-fade-up min-h-11 shrink-0 bg-white text-foreground shadow-md hover:bg-white/90"
           style={{ animationDelay: "560ms" }}
         >
-          <Plus className="mr-1.5 size-4" /> Új cég
+          <Plus className="mr-1.5 size-4" /> {t("crm.newCompany")}
         </Button>
       </div>
 
@@ -306,29 +305,29 @@ function CrmPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Keresés cégnév vagy domain szerint…"
+            placeholder={t("crm.searchPlaceholder")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="sm:w-44">
-            <SelectValue placeholder="Státusz" />
+            <SelectValue placeholder={t("crm.filter.status")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Minden státusz</SelectItem>
-            <SelectItem value="nincs_valasz">Nincs válasz</SelectItem>
-            <SelectItem value="valaszolt">Válaszolt</SelectItem>
-            <SelectItem value="erdeklodik">Érdeklődik</SelectItem>
-            <SelectItem value="lezarva">Lezárva</SelectItem>
+            <SelectItem value="all">{t("crm.filter.allStatus")}</SelectItem>
+            <SelectItem value="nincs_valasz">{t("crm.status.nincsValasz")}</SelectItem>
+            <SelectItem value="valaszolt">{t("crm.status.valaszolt")}</SelectItem>
+            <SelectItem value="erdeklodik">{t("crm.status.erdeklodik")}</SelectItem>
+            <SelectItem value="lezarva">{t("crm.status.lezarva")}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={industryFilter} onValueChange={setIndustryFilter}>
           <SelectTrigger className="sm:w-44">
-            <SelectValue placeholder="Iparág" />
+            <SelectValue placeholder={t("crm.filter.industry")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Minden iparág</SelectItem>
+            <SelectItem value="all">{t("crm.filter.allIndustry")}</SelectItem>
             {industries.map((industry) => (
               <SelectItem key={industry} value={industry}>
                 {industry}
@@ -349,11 +348,11 @@ function CrmPage() {
           <Building2 className="mx-auto mb-3 size-6 text-muted-foreground" />
           <p className="text-sm font-medium text-foreground">
             {companies && companies.length > 0
-              ? "Nincs a szűrésnek megfelelő cég."
-              : "Még egy cég sincs felvéve."}
+              ? t("crm.empty.filtered")
+              : t("crm.empty.none")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vedd fel az első céget az „Új cég” gombbal.
+            {t("crm.empty.hint")}
           </p>
         </div>
       ) : (
@@ -377,12 +376,12 @@ function CrmPage() {
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {[company.industry, company.city, company.domain]
                           .filter(Boolean)
-                          .join(" · ") || "Nincs megadva iparág vagy város"}
+                          .join(" · ") || t("crm.noIndustryCity")}
                       </p>
                       <p className="mt-2 truncate text-xs text-muted-foreground">
                         {info?.contactName
                           ? `${info.contactName}${info.contactEmail ? ` — ${info.contactEmail}` : ""}`
-                          : "Nincs kapcsolattartó"}
+                          : t("crm.noContact")}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
@@ -390,15 +389,15 @@ function CrmPage() {
                         className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${badge.pill}`}
                       >
                         <span className={`size-1.5 rounded-full ${badge.dot}`} />
-                        {badge.label}
+                        {t(badge.label)}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {info?.lastActivity
-                          ? `Utolsó aktivitás: ${formatDate(info.lastActivity)}`
-                          : "Nincs aktivitás"}
+                          ? t("crm.lastActivity", { date: formatDate(info.lastActivity, locale) })
+                          : t("crm.noActivity")}
                       </span>
                       {company.opt_out && (
-                        <span className="text-xs font-medium text-rose-600">Leiratkozott</span>
+                        <span className="text-xs font-medium text-rose-600">{t("crm.optedOut")}</span>
                       )}
                     </div>
                   </div>
@@ -412,12 +411,12 @@ function CrmPage() {
       <Dialog open={openNew} onOpenChange={setOpenNew}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Új cég</DialogTitle>
-            <DialogDescription>Vedd fel kézzel a cég alapadatait.</DialogDescription>
+            <DialogTitle>{t("crm.newCompany")}</DialogTitle>
+            <DialogDescription>{t("crm.dialog.description")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="n-name">Cégnév</Label>
+              <Label htmlFor="n-name">{t("crm.field.name")}</Label>
               <Input
                 id="n-name"
                 value={form.name}
@@ -434,7 +433,7 @@ function CrmPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="n-industry">Iparág</Label>
+              <Label htmlFor="n-industry">{t("crm.filter.industry")}</Label>
               <Input
                 id="n-industry"
                 value={form.industry}
@@ -442,7 +441,7 @@ function CrmPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="n-city">Város</Label>
+              <Label htmlFor="n-city">{t("crm.field.city")}</Label>
               <Input
                 id="n-city"
                 value={form.city}
@@ -450,7 +449,7 @@ function CrmPage() {
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="n-notes">Megjegyzések</Label>
+              <Label htmlFor="n-notes">{t("crm.field.notes")}</Label>
               <Textarea
                 id="n-notes"
                 rows={3}
@@ -461,13 +460,13 @@ function CrmPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpenNew(false)}>
-              Mégse
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={() => createCompany.mutate()}
               disabled={!form.name.trim() || createCompany.isPending}
             >
-              Cég mentése
+              {t("crm.saveCompany")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -484,8 +483,8 @@ function badgeKind(status: CompanyRow["status"], pending: number): BadgeKind {
   return pending > 0 ? "varakozik" : "nincs_valasz";
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("hu-HU", {
+function formatDate(value: string, locale: string) {
+  return new Date(value).toLocaleDateString(locale, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
