@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { hunterSearch, type HunterPerson } from "@/lib/hunter.functions";
 import { Button } from "@/components/ui/button";
+import { useT, type MessageKey } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,12 +53,12 @@ interface ResponseRow {
   raw_text: string | null;
 }
 
-const CATEGORY_LABELS: Record<ResponseCategory, { label: string; className: string }> = {
-  erdeklodes: { label: "Érdeklődés", className: "bg-primary/10 text-primary" },
-  talalkozo: { label: "Találkozó", className: "bg-emerald-100 text-emerald-700" },
-  elutasitas: { label: "Elutasítás", className: "bg-rose-100 text-rose-700" },
-  kerdes: { label: "Kérdés", className: "bg-amber-100 text-amber-700" },
-  autovalasz: { label: "Automatikus válasz", className: "bg-muted text-muted-foreground" },
+const CATEGORY_LABELS: Record<ResponseCategory, { label: MessageKey; className: string }> = {
+  erdeklodes: { label: "category.erdeklodes", className: "bg-primary/10 text-primary" },
+  talalkozo: { label: "category.talalkozo", className: "bg-emerald-100 text-emerald-700" },
+  elutasitas: { label: "category.elutasitas", className: "bg-rose-100 text-rose-700" },
+  kerdes: { label: "category.kerdes", className: "bg-amber-100 text-amber-700" },
+  autovalasz: { label: "category.autovalasz", className: "bg-muted text-muted-foreground" },
 };
 
 const emptyContact = { name: "", email: "", phone: "", position: "" };
@@ -69,6 +70,7 @@ export function CompanyDetailPanel({
   company: CompanyRow | null;
   onClose: () => void;
 }) {
+  const { t, locale } = useT();
   const queryClient = useQueryClient();
   const runHunter = useServerFn(hunterSearch);
 
@@ -150,7 +152,7 @@ export function CompanyDetailPanel({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Cégadatok mentve.");
+      toast.success(t("company.toast.saved"));
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -165,7 +167,7 @@ export function CompanyDetailPanel({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Leiratkozási állapot frissítve.");
+      toast.success(t("company.toast.optOut"));
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -184,7 +186,7 @@ export function CompanyDetailPanel({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Kapcsolattartó hozzáadva.");
+      toast.success(t("company.toast.contactAdded"));
       setNewContact(emptyContact);
       setShowContactForm(false);
       invalidate();
@@ -198,7 +200,7 @@ export function CompanyDetailPanel({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Kapcsolattartó frissítve.");
+      toast.success(t("company.toast.contactUpdated"));
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -210,7 +212,7 @@ export function CompanyDetailPanel({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Kapcsolattartó törölve.");
+      toast.success(t("company.toast.contactDeleted"));
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -222,9 +224,9 @@ export function CompanyDetailPanel({
       setHunterPeople(result.people);
       setSelected({});
       if (result.status !== "ok") {
-        setHunterMessage(result.message ?? "A keresés nem hozott eredményt.");
+        setHunterMessage(result.message ?? t("company.hunter.noResult"));
       } else if (result.people.length === 0) {
-        setHunterMessage("A Hunter nem talált kontaktot ehhez a domainhez.");
+        setHunterMessage(t("company.hunter.noContact"));
       } else {
         setHunterMessage(null);
       }
@@ -235,7 +237,7 @@ export function CompanyDetailPanel({
   const saveSelected = useMutation({
     mutationFn: async () => {
       const chosen = hunterPeople.filter((person) => selected[person.email]);
-      if (chosen.length === 0) throw new Error("Nincs kiválasztott kontakt.");
+      if (chosen.length === 0) throw new Error(t("company.error.noneSelected"));
       const { error } = await supabase.from("contacts").insert(
         chosen.map((person) => ({
           organization_id: company!.organization_id,
@@ -253,7 +255,7 @@ export function CompanyDetailPanel({
       if (flagError) throw flagError;
     },
     onSuccess: () => {
-      toast.success("Kiválasztott kontaktok mentve.");
+      toast.success(t("company.toast.selectedSaved"));
       setHunterPeople([]);
       setSelected({});
       invalidate();
@@ -268,14 +270,14 @@ export function CompanyDetailPanel({
           <div className="space-y-8 pb-10">
             <SheetHeader className="space-y-1 text-left">
               <SheetTitle className="text-xl">{company.name}</SheetTitle>
-              <SheetDescription>Cégadatok, kapcsolattartók és kontaktkeresés.</SheetDescription>
+              <SheetDescription>{t("company.description")}</SheetDescription>
             </SheetHeader>
 
             <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">Cégadatok</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t("company.section.data")}</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="c-name">Cégnév</Label>
+                  <Label htmlFor="c-name">{t("crm.field.name")}</Label>
                   <Input
                     id="c-name"
                     value={form.name}
@@ -292,7 +294,7 @@ export function CompanyDetailPanel({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="c-industry">Iparág</Label>
+                  <Label htmlFor="c-industry">{t("crm.filter.industry")}</Label>
                   <Input
                     id="c-industry"
                     value={form.industry}
@@ -300,7 +302,7 @@ export function CompanyDetailPanel({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="c-city">Város</Label>
+                  <Label htmlFor="c-city">{t("crm.field.city")}</Label>
                   <Input
                     id="c-city"
                     value={form.city}
@@ -309,7 +311,7 @@ export function CompanyDetailPanel({
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="c-notes">Megjegyzések</Label>
+                <Label htmlFor="c-notes">{t("crm.field.notes")}</Label>
                 <Textarea
                   id="c-notes"
                   rows={3}
@@ -319,7 +321,7 @@ export function CompanyDetailPanel({
               </div>
               <Button onClick={() => saveCompany.mutate()} disabled={saveCompany.isPending}>
                 {saveCompany.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-                Mentés
+                {t("common.save")}
               </Button>
             </section>
 
@@ -327,8 +329,8 @@ export function CompanyDetailPanel({
 
             <section className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/40 px-4 py-3">
               <div>
-                <p className="text-sm font-medium text-foreground">Leiratkozott</p>
-                <p className="text-xs text-muted-foreground">Ne írjunk neki többé.</p>
+                <p className="text-sm font-medium text-foreground">{t("crm.optedOut")}</p>
+                <p className="text-xs text-muted-foreground">{t("company.optOutHint")}</p>
               </div>
               <Switch
                 checked={company.opt_out}
@@ -340,13 +342,13 @@ export function CompanyDetailPanel({
 
             <section className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">Kapcsolattartók</h3>
+                <h3 className="text-sm font-semibold text-foreground">{t("company.section.contacts")}</h3>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowContactForm((value) => !value)}
                 >
-                  <Plus className="mr-1.5 size-4" /> Új kontakt
+                  <Plus className="mr-1.5 size-4" /> {t("company.newContact")}
                 </Button>
               </div>
 
@@ -354,7 +356,7 @@ export function CompanyDetailPanel({
                 <div className="space-y-3 rounded-xl border border-border p-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Input
-                      placeholder="Név"
+                      placeholder={t("company.field.contactName")}
                       value={newContact.name}
                       onChange={(event) => setNewContact({ ...newContact, name: event.target.value })}
                     />
@@ -364,12 +366,12 @@ export function CompanyDetailPanel({
                       onChange={(event) => setNewContact({ ...newContact, email: event.target.value })}
                     />
                     <Input
-                      placeholder="Telefon"
+                      placeholder={t("company.field.phone")}
                       value={newContact.phone}
                       onChange={(event) => setNewContact({ ...newContact, phone: event.target.value })}
                     />
                     <Input
-                      placeholder="Pozíció"
+                      placeholder={t("company.field.position")}
                       value={newContact.position}
                       onChange={(event) =>
                         setNewContact({ ...newContact, position: event.target.value })
@@ -381,13 +383,13 @@ export function CompanyDetailPanel({
                     disabled={!newContact.name.trim() || addContact.isPending}
                     onClick={() => addContact.mutate()}
                   >
-                    Kontakt mentése
+                    {t("company.saveContact")}
                   </Button>
                 </div>
               )}
 
               {contactsLoading ? (
-                <p className="text-sm text-muted-foreground">Betöltés…</p>
+                <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
               ) : contacts && contacts.length > 0 ? (
                 <ul className="space-y-3">
                   {contacts.map((contact) => (
@@ -403,7 +405,7 @@ export function CompanyDetailPanel({
                 <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
                   <Users className="mx-auto mb-2 size-5 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Még nincs kapcsolattartó — add hozzá kézzel vagy keress Hunterrel.
+                    {t("company.contactsEmpty")}
                   </p>
                 </div>
               )}
@@ -412,7 +414,7 @@ export function CompanyDetailPanel({
             <Separator />
 
             <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">Kontakt keresés Hunterrel</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t("company.section.hunter")}</h3>
               <Button
                 variant="outline"
                 onClick={() => {
@@ -426,7 +428,7 @@ export function CompanyDetailPanel({
                 ) : (
                   <Search className="mr-2 size-4" />
                 )}
-                Kontakt keresés Hunterrel
+                {t("company.section.hunter")}
               </Button>
 
               {hunterMessage && (
@@ -464,7 +466,7 @@ export function CompanyDetailPanel({
                     onClick={() => saveSelected.mutate()}
                     disabled={saveSelected.isPending}
                   >
-                    Kiválasztottak mentése
+                    {t("company.saveSelected")}
                   </Button>
                 </div>
               )}
@@ -473,11 +475,11 @@ export function CompanyDetailPanel({
             <Separator />
 
             <section className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Email előzmények</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t("company.section.emails")}</h3>
               <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
                 <Mail className="mx-auto mb-2 size-5 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
-                  Az email előzmények az Email sor modul elkészülte után jelennek meg itt.
+                  {t("company.emailsPlaceholder")}
                 </p>
               </div>
             </section>
@@ -485,15 +487,15 @@ export function CompanyDetailPanel({
             <Separator />
 
             <section className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Válaszok</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t("company.section.responses")}</h3>
               {responsesLoading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin" /> Betöltés…
+                  <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
                 </div>
               ) : !responses || responses.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
                   <Mail className="mx-auto mb-2 size-5 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Ehhez a céghez még nem érkezett válasz.</p>
+                  <p className="text-sm text-muted-foreground">{t("company.responsesEmpty")}</p>
                 </div>
               ) : (
                 <ol className="space-y-3 border-l border-border pl-4">
@@ -505,12 +507,12 @@ export function CompanyDetailPanel({
                         <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
                           <div className="mb-1 flex flex-wrap items-center gap-2">
                             <span className="text-xs text-muted-foreground">
-                              {new Date(response.received_at).toLocaleString("hu-HU")}
+                              {new Date(response.received_at).toLocaleString(locale)}
                             </span>
                             <span
                               className={`rounded-full px-2 py-0.5 text-xs font-medium ${meta?.className ?? "bg-muted text-muted-foreground"}`}
                             >
-                              {meta?.label ?? "Feldolgozás alatt"}
+                              {meta ? t(meta.label) : t("overview.responses.processing")}
                             </span>
                           </div>
                           <p className="whitespace-pre-wrap text-sm text-foreground">
@@ -539,6 +541,7 @@ function ContactItem({
   onSave: (patch: Partial<ContactRow>) => void;
   onDelete: () => void;
 }) {
+  const { t } = useT();
   const [draft, setDraft] = useState({
     name: contact.name,
     email: contact.email ?? "",
@@ -563,12 +566,12 @@ function ContactItem({
         />
         <Input
           value={draft.phone}
-          placeholder="Telefon"
+          placeholder={t("company.field.phone")}
           onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
         />
         <Input
           value={draft.position}
-          placeholder="Pozíció"
+          placeholder={t("company.field.position")}
           onChange={(e) => setDraft({ ...draft, position: e.target.value })}
         />
       </div>
@@ -586,10 +589,10 @@ function ContactItem({
             })
           }
         >
-          Mentés
+          {t("common.save")}
         </Button>
         <Button size="sm" variant="ghost" onClick={onDelete}>
-          <Trash2 className="mr-1.5 size-4" /> Törlés
+          <Trash2 className="mr-1.5 size-4" /> {t("common.delete")}
         </Button>
       </div>
     </li>
