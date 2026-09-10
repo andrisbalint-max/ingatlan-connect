@@ -207,6 +207,205 @@ export const messages = {
   "common.loading": { hu: "Betöltés…", en: "Loading…" },
   "common.delete": { hu: "Törlés", en: "Delete" },
 
+  // --- Projektek ---
+  "project.status.aktiv": { hu: "Aktív", en: "Active" },
+  "project.status.eloketszites": { hu: "Előkészítés", en: "In preparation" },
+  "project.status.szunetel": { hu: "Szünetel", en: "Paused" },
+  "project.status.lezarva": { hu: "Lezárva", en: "Closed" },
+  "project.kicker": { hu: "Ipari ingatlan portfólió", en: "Industrial property portfolio" },
+  "project.description": {
+    hu: "Ipari ingatlan projektek, méretek és dokumentumok egy helyen.",
+    en: "Industrial property projects, sizes and documents in one place.",
+  },
+  "project.new": { hu: "Új projekt", en: "New project" },
+  "project.empty": {
+    hu: "Még nincs projekt. Hozd létre az elsőt!",
+    en: "No projects yet. Create the first one!",
+  },
+  "project.create": { hu: "Létrehozás", en: "Create" },
+  "project.saveBasics": { hu: "Alapadatok mentése", en: "Save basic details" },
+  "project.noLocation": { hu: "Nincs megadva helyszín", en: "No location set" },
+  "project.field.titlePlaceholder": {
+    hu: "Pl. Logisztikai csarnok — Páty",
+    en: "e.g. Logistics warehouse — Páty",
+  },
+  "project.field.description": { hu: "Leírás", en: "Description" },
+  "project.field.descriptionPlaceholder": {
+    hu: "Projekt részletei, műszaki paraméterek…",
+    en: "Project details, technical parameters…",
+  },
+  "project.field.size": { hu: "Méret (m²)", en: "Size (sqm)" },
+  "project.field.audienceOptional": {
+    hu: "Célközönség / tevékenységi kör (opcionális)",
+    en: "Target audience / activity (optional)",
+  },
+  "project.field.audience": {
+    hu: "Célközönség / tevékenységi kör",
+    en: "Target audience / activity",
+  },
+  "project.field.audiencePlaceholder": {
+    hu: "Pl. logisztikai szolgáltatók, könnyűipari gyártók…",
+    en: "e.g. logistics providers, light manufacturers…",
+  },
+  "project.field.audiencePlaceholderLong": {
+    hu: "Pl. logisztikai szolgáltatók, könnyűipari gyártók, 50+ fős cégek…",
+    en: "e.g. logistics providers, light manufacturers, companies with 50+ staff…",
+  },
+  "project.toast.created": { hu: "Projekt létrehozva.", en: "Project created." },
+  "project.error.titleRequired": {
+    hu: "A projekt neve kötelező.",
+    en: "The project name is required.",
+  },
+
+  // --- Projekt: AI javaslat és dokumentumok ---
+  "project.ai.hint": {
+    hu: "AI javaslat a feltöltött PDF alapján — szerkeszthető, csak elfogadás után kerül a mezőkbe.",
+    en: "AI suggestion from the uploaded PDF — editable, and applied to the fields only once accepted.",
+  },
+  "project.ai.suggestedDescription": { hu: "Javasolt leírás", en: "Suggested description" },
+  "project.ai.suggestedAudience": { hu: "Javasolt célközönség", en: "Suggested audience" },
+  "project.ai.accept": { hu: "Javaslat átvétele", en: "Apply suggestion" },
+  "project.ai.failed": {
+    hu: "Az AI összefoglaló nem készült el.",
+    en: "The AI summary could not be produced.",
+  },
+  "project.files.dropzone": {
+    hu: "Húzd ide a PDF vagy kép fájlokat, vagy válaszd ki őket.",
+    en: "Drag PDF or image files here, or choose them.",
+  },
+  "project.files.choose": { hu: "Fájl kiválasztása", en: "Choose file" },
+  "project.files.empty": {
+    hu: "Még nincs feltöltött dokumentum.",
+    en: "No documents uploaded yet.",
+  },
+  "project.files.aiSummary": { hu: "AI összefoglaló", en: "AI summary" },
+  "project.files.toast.deleted": { hu: "Fájl törölve.", en: "File deleted." },
+  "project.files.toast.uploaded": {
+    hu: "{name} feltöltve és összegezve.",
+    en: "{name} uploaded and summarised.",
+  },
+  "project.files.downloadFailed": {
+    hu: "A letöltési link létrehozása nem sikerült.",
+    en: "Could not create the download link.",
+  },
+
+  // --- Projekt: célzott cégek ---
+  "projectCompanies.title": { hu: "Célzott cégek", en: "Targeted companies" },
+  "projectCompanies.addManual": {
+    hu: "Cég hozzáadása kézzel",
+    en: "Add a company manually",
+  },
+  "projectCompanies.empty": {
+    hu: "Még nincs célzott cég. Importálj cégeket az Opten keresésből, vagy adj hozzá céget kézzel.",
+    en: "No targeted companies yet. Import companies from the Opten search, or add one manually.",
+  },
+  "projectCompanies.alsoIn": {
+    hu: "Már szerepel a(z) {title} projektben is",
+    en: "Also in the {title} project",
+  },
+  "projectCompanies.writeEmail": { hu: "Email megírása", en: "Write email" },
+  "projectCompanies.fromCrm": { hu: "Cég a CRM-ből", en: "Company from the CRM" },
+  "projectCompanies.chooseCompany": { hu: "Válassz céget", en: "Choose a company" },
+  "projectCompanies.noCompany": { hu: "Nincs elérhető cég", en: "No company available" },
+  "projectCompanies.toast.linked": {
+    hu: "Cég hozzárendelve a projekthez.",
+    en: "Company linked to the project.",
+  },
+  "projectCompanies.toast.draft": {
+    hu: "Email piszkozat az Email sorba került.",
+    en: "The email draft was added to the Email queue.",
+  },
+  "projectCompanies.toast.noEmail": {
+    hu: "Az email nem készült el.",
+    en: "The email could not be produced.",
+  },
+  "projectCompanies.approvedWithHunter": {
+    hu: "Jóváhagyva — {count} kontakt mentve Hunterrel.",
+    en: "Approved — {count} contacts saved with Hunter.",
+  },
+  "projectCompanies.approved": { hu: "Jóváhagyva.", en: "Approved." },
+
+  // --- Projekt: Opten illesztés ---
+  "optenMatch.categoriesTitle": {
+    hu: "Releváns tevékenységi körök",
+    en: "Relevant activity categories",
+  },
+  "optenMatch.categoriesEmpty": {
+    hu: "Még nincs kategorizált cég — töltsd fel az Opten exportot a Talált cégek oldalon, majd futtasd a kategorizálást.",
+    en: "No categorised companies yet — upload the Opten export on the Found companies page, then run the categorisation.",
+  },
+  "optenMatch.findCompanies": {
+    hu: "Releváns cégek keresése",
+    en: "Find relevant companies",
+  },
+  "optenMatch.searchPlaceholder": {
+    hu: "Keresés a cégadatbázisban…",
+    en: "Search the company database…",
+  },
+  "optenMatch.searchLabel": {
+    hu: "Keresés a cégadatbázisban",
+    en: "Search the company database",
+  },
+  "optenMatch.empty": {
+    hu: "Még nincs illesztett cég. Válaszd ki a releváns tevékenységi köröket, majd indítsd a „Releváns cégek keresése” gombot.",
+    en: "No matched companies yet. Pick the relevant activity categories, then use the “Find relevant companies” button.",
+  },
+  "optenMatch.decisionMaker": { hu: "Döntéshozó: {name}", en: "Decision-maker: {name}" },
+  "optenMatch.noDecisionMaker": {
+    hu: "Még nincs döntéshozó — jóváhagyáskor lefut a Hunter keresés.",
+    en: "No decision-maker yet — the Hunter search runs on approval.",
+  },
+  "optenMatch.toast.categoriesSaved": {
+    hu: "Tevékenységi körök mentve.",
+    en: "Activity categories saved.",
+  },
+  "optenMatch.error.saveFirst": {
+    hu: "Először mentsd el a releváns tevékenységi köröket.",
+    en: "Save the relevant activity categories first.",
+  },
+  "optenMatch.toast.newSuggestions": {
+    hu: "{count} új javasolt cég.",
+    en: "{count} new suggested companies.",
+  },
+  "optenMatch.toast.noNew": {
+    hu: "Nincs új illeszkedő cég.",
+    en: "No new matching company.",
+  },
+  "optenMatch.toast.added": {
+    hu: "Cég hozzáadva a projekthez (javasolt).",
+    en: "Company added to the project (suggested).",
+  },
+  "optenMatch.error.noData": {
+    hu: "A cég adatai nem elérhetők.",
+    en: "The company's data is not available.",
+  },
+  "optenMatch.approvedWithContacts": {
+    hu: "Jóváhagyva — {count} kontakt is átkerült a CRM-be.",
+    en: "Approved — {count} contacts moved into the CRM as well.",
+  },
+  "optenMatch.approvedToCrm": {
+    hu: "Jóváhagyva — a cég bekerült a CRM-be.",
+    en: "Approved — the company was added to the CRM.",
+  },
+  "optenMatch.aiNoCategory": {
+    hu: "Az AI nem talált illeszkedő kategóriát.",
+    en: "The AI found no matching category.",
+  },
+  "optenMatch.aiSuggest": { hu: "AI javaslat", en: "AI suggestion" },
+  "optenMatch.aiFailed": {
+    hu: "A javaslat nem készült el.",
+    en: "The suggestion could not be produced.",
+  },
+
+  // --- AI állapotok (több helyen) ---
+  "ai.noProvider": { hu: "AI-szolgáltató nincs beállítva", en: "No AI provider configured" },
+  "ai.outOfCreditShort": {
+    hu: "Elfogyott az AI-kredit, próbáld később",
+    en: "AI credit has run out, try again later",
+  },
+  "common.discard": { hu: "Elvetés", en: "Discard" },
+  "common.add": { hu: "Hozzáadás", en: "Add" },
+
   // --- Nyitóképernyő ---
   "splash.loading": {
     hu: "Real Estate Connect betöltése",
