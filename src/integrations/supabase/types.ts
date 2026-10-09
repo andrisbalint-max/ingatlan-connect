@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          actor: string
+          api_key_id: string | null
+          created_at: string
+          description: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          actor: string
+          api_key_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          actor?: string
+          api_key_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          organization_id: string
+          revoked_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          organization_id: string
+          revoked_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          organization_id?: string
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_api_keys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           city: string | null
@@ -147,8 +220,44 @@ export type Database = {
           },
         ]
       }
+      email_blocklist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          organization_id: string
+          reason: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          organization_id: string
+          reason?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          organization_id?: string
+          reason?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_blocklist_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emails_queue: {
         Row: {
+          agent_name: string | null
           ai_generated: boolean
           approved_at: string | null
           body: string | null
@@ -162,6 +271,7 @@ export type Database = {
           id: string
           last_error: string | null
           organization_id: string
+          personalization_note: string | null
           project_id: string | null
           scheduled_for: string | null
           send_attempts: number
@@ -170,6 +280,7 @@ export type Database = {
           subject: string | null
         }
         Insert: {
+          agent_name?: string | null
           ai_generated?: boolean
           approved_at?: string | null
           body?: string | null
@@ -183,6 +294,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           organization_id: string
+          personalization_note?: string | null
           project_id?: string | null
           scheduled_for?: string | null
           send_attempts?: number
@@ -191,6 +303,7 @@ export type Database = {
           subject?: string | null
         }
         Update: {
+          agent_name?: string | null
           ai_generated?: boolean
           approved_at?: string | null
           body?: string | null
@@ -204,6 +317,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           organization_id?: string
+          personalization_note?: string | null
           project_id?: string | null
           scheduled_for?: string | null
           send_attempts?: number
@@ -304,6 +418,7 @@ export type Database = {
       opten_prospects: {
         Row: {
           activity_category: string | null
+          agent_note: string | null
           city: string | null
           company_id: string | null
           company_name: string
@@ -312,6 +427,8 @@ export type Database = {
           decision_maker_match_confidence: string | null
           decision_maker_name: string | null
           decision_maker_position: string | null
+          decision_maker_source: string | null
+          decision_maker_source_url: string | null
           domain: string | null
           domain_source: string | null
           found_contacts: Json
@@ -326,6 +443,7 @@ export type Database = {
         }
         Insert: {
           activity_category?: string | null
+          agent_note?: string | null
           city?: string | null
           company_id?: string | null
           company_name: string
@@ -334,6 +452,8 @@ export type Database = {
           decision_maker_match_confidence?: string | null
           decision_maker_name?: string | null
           decision_maker_position?: string | null
+          decision_maker_source?: string | null
+          decision_maker_source_url?: string | null
           domain?: string | null
           domain_source?: string | null
           found_contacts?: Json
@@ -348,6 +468,7 @@ export type Database = {
         }
         Update: {
           activity_category?: string | null
+          agent_note?: string | null
           city?: string | null
           company_id?: string | null
           company_name?: string
@@ -356,6 +477,8 @@ export type Database = {
           decision_maker_match_confidence?: string | null
           decision_maker_name?: string | null
           decision_maker_position?: string | null
+          decision_maker_source?: string | null
+          decision_maker_source_url?: string | null
           domain?: string | null
           domain_source?: string | null
           found_contacts?: Json
@@ -677,6 +800,9 @@ export type Database = {
       }
       responses: {
         Row: {
+          agent_category: string | null
+          agent_processed_at: string | null
+          agent_summary: string | null
           category: Database["public"]["Enums"]["response_category"] | null
           created_at: string
           email_id: string | null
@@ -687,8 +813,12 @@ export type Database = {
           raw_text: string | null
           received_at: string
           seen: boolean
+          suggested_reply: string | null
         }
         Insert: {
+          agent_category?: string | null
+          agent_processed_at?: string | null
+          agent_summary?: string | null
           category?: Database["public"]["Enums"]["response_category"] | null
           created_at?: string
           email_id?: string | null
@@ -699,8 +829,12 @@ export type Database = {
           raw_text?: string | null
           received_at?: string
           seen?: boolean
+          suggested_reply?: string | null
         }
         Update: {
+          agent_category?: string | null
+          agent_processed_at?: string | null
+          agent_summary?: string | null
           category?: Database["public"]["Enums"]["response_category"] | null
           created_at?: string
           email_id?: string | null
@@ -711,6 +845,7 @@ export type Database = {
           raw_text?: string | null
           received_at?: string
           seen?: boolean
+          suggested_reply?: string | null
         }
         Relationships: [
           {
