@@ -22,6 +22,7 @@ import {
   isAiOutOfCreditError,
   resolveAiProvider,
 } from "@/server/ai-provider.server";
+import { isAgentMode } from "@/lib/agent-rules";
 
 /** Easily editable general-search query list. */
 const WEEKLY_QUERIES = (year: number) => [
@@ -102,6 +103,7 @@ const SYNTHESIS_SYSTEM_PROMPT = [
 export interface WeeklyReportOrgResult {
   organizationId: string;
   status: "ok" | "no_provider" | "out_of_credit" | "error";
+  skipped?: string;
   itemsFound: number;
   partnersChecked: number;
   partnerMovementsFound: number;
@@ -210,6 +212,17 @@ export async function runWeeklyReportForOrg(
 
   const resolved = resolveAiProvider(settings);
   if (!resolved) {
+    if (isAgentMode(settings.preferred_ai_provider)) {
+      console.log(`[weekly-report] Skipping organization ${organizationId}: claude_agents mode.`);
+      return {
+        organizationId,
+        status: "no_provider",
+        itemsFound: 0,
+        partnersChecked: 0,
+        partnerMovementsFound: 0,
+        skipped: "claude_agents",
+      };
+    }
     console.log(`[weekly-report] Skipping organization ${organizationId}: no AI provider key.`);
     return { organizationId, status: "no_provider", itemsFound: 0, partnersChecked: 0, partnerMovementsFound: 0 };
   }
