@@ -19,6 +19,7 @@ import {
   isAiOutOfCreditError,
   resolveAiProvider,
 } from "@/server/ai-provider.server";
+import { isAgentMode } from "@/lib/agent-rules";
 
 /** Easily editable search query list. */
 export const QUERIES = (year: number) => [
@@ -79,6 +80,7 @@ const DAILY_SUMMARY_SYSTEM_PROMPT = [
 export interface MarketMonitorOrgResult {
   organizationId: string;
   status: "ok" | "no_provider" | "out_of_credit" | "error";
+  skipped?: string;
   newItems: number;
   message?: string;
 }
@@ -130,6 +132,10 @@ export async function runMarketMonitorForOrg(
 
   const resolved = resolveAiProvider(settings);
   if (!resolved) {
+    if (isAgentMode(settings.preferred_ai_provider)) {
+      console.log(`[market-monitor] Skipping organization ${organizationId}: claude_agents mode.`);
+      return { organizationId, status: "no_provider", newItems: 0, skipped: "claude_agents" };
+    }
     console.log(`[market-monitor] Skipping organization ${organizationId}: no AI provider key.`);
     return { organizationId, status: "no_provider", newItems: 0 };
   }
