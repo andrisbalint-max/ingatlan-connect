@@ -13,6 +13,8 @@
  *    callers can skip gracefully instead of crashing
  */
 
+import { isAgentMode } from "@/lib/agent-rules";
+
 export type AiProvider = "openai" | "anthropic";
 
 export interface AiProviderSettings {
@@ -109,11 +111,13 @@ export function isAiOutOfCreditError(error: unknown): error is AiOutOfCreditErro
 /**
  * Chooses the provider to use: the preferred one when its key is set,
  * otherwise the other provider if that key is set. Returns null if
- * neither key is available.
+ * neither key is available. In Claude-agent mode ('claude_agents') the app
+ * never calls a provider itself, so this always returns null.
  */
 export function resolveAiProvider(
   settings: AiProviderSettings | null | undefined,
 ): ResolvedAiProvider | null {
+  if (isAgentMode(settings?.preferred_ai_provider)) return null;
   const openaiKey = (settings?.openai_api_key ?? "").trim();
   const anthropicKey = (settings?.anthropic_api_key ?? "").trim();
   const preferred: AiProvider =
