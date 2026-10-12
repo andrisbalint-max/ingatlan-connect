@@ -179,6 +179,7 @@ export const messages = {
     en: "No replies from this company yet.",
   },
   "company.field.position": { hu: "Pozíció", en: "Position" },
+  "company.field.phone": { hu: "Telefon", en: "Phone" },
   "company.field.contactName": { hu: "Név", en: "Name" },
   "company.toast.saved": { hu: "Cégadatok mentve.", en: "Company details saved." },
   "company.toast.optOut": {
