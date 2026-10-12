@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
+import { isAgentMode } from "@/lib/agent-rules";
 
 type EmailRow = {
   id: string;
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/api/public/cron/follow-up-generator")({
 
         const { data: orgs, error: orgsError } = await supabaseAdmin
           .from("settings")
-          .select("organization_id, openai_api_key, follow_up_schedule");
+          .select("organization_id, openai_api_key, follow_up_schedule, preferred_ai_provider");
         if (orgsError) {
           return Response.json({ success: false, error: orgsError.message }, { status: 500 });
         }
@@ -30,6 +31,17 @@ export const Route = createFileRoute("/api/public/cron/follow-up-generator")({
         const results: Array<{ organization_id: string; created: number; skipped?: string }> = [];
 
         for (const org of orgs ?? []) {
+          if (isAgentMode(org.preferred_ai_provider)) {
+            console.log(
+              `[follow-up-generator] Skipping organization ${org.organization_id}: claude_agents mode.`,
+            );
+            results.push({
+              organization_id: org.organization_id,
+              created: 0,
+              skipped: "claude_agents",
+            });
+            continue;
+          }
           const apiKey = (org.openai_api_key ?? "").trim();
           if (!apiKey) {
             console.log(
