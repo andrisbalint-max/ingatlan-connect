@@ -54,6 +54,9 @@ type EmailRow = {
   approved_at: string | null;
   sent_at: string | null;
   created_at: string;
+  follow_up_number: number;
+  agent_name: string | null;
+  personalization_note: string | null;
 };
 
 const statusBadges: Record<EmailStatus, { label: MessageKey; pill: string }> = {
@@ -130,7 +133,7 @@ function EmailQueuePage() {
       const { data, error } = await supabase
         .from("emails_queue")
         .select(
-          "id, company_id, contact_id, subject, body, context_note, status, approved_at, sent_at, created_at",
+          "id, company_id, contact_id, subject, body, context_note, status, approved_at, sent_at, created_at, follow_up_number, agent_name, personalization_note",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -322,6 +325,10 @@ function EmailQueuePage() {
                     <p className="text-sm text-muted-foreground">
                       {contact ? `${contact.name}${contact.email ? ` · ${contact.email}` : ""}` : t("crm.noContact")}
                     </p>
+                    <p className="text-xs text-muted-foreground">
+                      {email.follow_up_number + 1}. lépés
+                      {email.agent_name ? ` · Írta: ${email.agent_name}` : ""}
+                    </p>
                   </div>
                   <StatusBadge status={email.status} />
                 </div>
@@ -340,6 +347,12 @@ function EmailQueuePage() {
                   email.context_note && (
                     <p className="mb-4 text-xs text-muted-foreground">{email.context_note}</p>
                   )
+                )}
+
+                {email.personalization_note && (
+                  <p className="mb-4 rounded-lg bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+                    Személyre szabás: {email.personalization_note}
+                  </p>
                 )}
 
                 <div className="space-y-4">
