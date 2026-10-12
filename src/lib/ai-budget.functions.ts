@@ -49,6 +49,8 @@ export const getAiBudgetStatus = createServerFn({ method: "GET" })
     if (error) throw error;
     if (!settings) return empty;
 
+    // Claude-agent mode: the app makes no provider calls, so no credit/budget banners.
+    if (settings.preferred_ai_provider === "claude_agents") return empty;
     const resolved = resolveAiProvider(settings);
     const budget = settings.monthly_ai_budget_usd != null ? Number(settings.monthly_ai_budget_usd) : null;
     const used = Number(settings.ai_usage_estimated_usd ?? 0);
