@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 import { decryptRefreshToken } from "@/server/outlook-crypto.server";
+import { withUnsubscribeFooter } from "@/lib/agent-rules";
 
 export const Route = createFileRoute("/api/public/cron/email-sender")({
   server: {
@@ -50,6 +51,21 @@ export const Route = createFileRoute("/api/public/cron/email-sender")({
             continue;
           }
 
+          const { data: blocked } = await supabaseAdmin
+            .from("email_blocklist")
+            .select("id")
+            .eq("organization_id", row.organization_id)
+            .ilike("email", contact.email.trim())
+            .limit(1);
+          if ((blocked ?? []).length > 0) {
+            await supabaseAdmin
+              .from("emails_queue")
+              .update({ status: "elvetve", last_error: "A címzett tiltólistán van." })
+              .eq("id", row.id);
+            results.push({ id: row.id, status: "failed", error: "blocklisted" });
+            continue;
+          }
+
           const refreshToken = decryptRefreshToken(conn.refresh_token_ciphertext);
           const accessToken = await refreshAccessToken(refreshToken);
           if (!accessToken) {
@@ -65,7 +81,7 @@ export const Route = createFileRoute("/api/public/cron/email-sender")({
             contact.email,
             contact.name ?? contact.email,
             row.subject ?? "",
-            row.body ?? "",
+            withUnsubscribeFooter(toHtmlBody(row.body ?? "")),
           );
 
           if (sendResult.ok) {
@@ -99,6 +115,16 @@ export const Route = createFileRoute("/api/public/cron/email-sender")({
     },
   },
 });
+
+/** Graph gets HTML: plain-text bodies keep their line breaks. */
+function toHtmlBody(body: string) {
+  if (/<[a-z][\s\S]*>/i.test(body)) return body;
+  return body
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\r?\n/g, "<br>");
+}
 
 async function markFailed(emailId: string, attempts: number, error: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
