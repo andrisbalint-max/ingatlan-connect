@@ -1,3 +1,5 @@
+import { isAgentMode } from "@/lib/agent-rules";
+
 type Category = "erdeklodes" | "talalkozo" | "elutasitas" | "kerdes" | "autovalasz";
 
 const CATEGORIES: Category[] = ["erdeklodes", "talalkozo", "elutasitas", "kerdes", "autovalasz"];
@@ -15,9 +17,16 @@ export async function classifyPendingResponses(organizationId: string): Promise<
 
   const { data: settings } = await supabaseAdmin
     .from("settings")
-    .select("openai_api_key")
+    .select("openai_api_key, preferred_ai_provider")
     .eq("organization_id", organizationId)
     .maybeSingle();
+
+  if (isAgentMode(settings?.preferred_ai_provider)) {
+    console.log(
+      `[response-classifier] Skipping organization ${organizationId}: claude_agents mode.`,
+    );
+    return { processed: 0, skipped: "claude_agents" };
+  }
 
   const apiKey = (settings?.openai_api_key ?? "").trim();
   if (!apiKey) {
