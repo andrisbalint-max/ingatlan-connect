@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { AgentApiCard } from "@/components/AgentApiCard";
+import { BlocklistCard } from "@/components/BlocklistCard";
 import {
   startOutlookAuth,
   getOutlookStatus,
@@ -42,7 +44,7 @@ interface Settings {
   hunter_api_key: string | null;
   openai_api_key: string | null;
   anthropic_api_key: string | null;
-  preferred_ai_provider: "openai" | "anthropic";
+  preferred_ai_provider: "openai" | "anthropic" | "claude_agents";
   outlook_connected: boolean;
   daily_email_limit: number;
   send_window_start: string;
@@ -149,7 +151,7 @@ function SettingsPage() {
   const [hunterKey, setHunterKey] = useState("");
   const [openaiKey, setOpenaiKey] = useState("");
   const [anthropicKey, setAnthropicKey] = useState("");
-  const [aiProvider, setAiProvider] = useState<"openai" | "anthropic">("anthropic");
+  const [aiProvider, setAiProvider] = useState<Settings["preferred_ai_provider"]>("claude_agents");
   const [aiBudget, setAiBudget] = useState("");
   const [dailyLimit, setDailyLimit] = useState(30);
   const [windowStart, setWindowStart] = useState("09:00");
@@ -163,7 +165,7 @@ function SettingsPage() {
     setHunterKey(settings.hunter_api_key ?? "");
     setOpenaiKey(settings.openai_api_key ?? "");
     setAnthropicKey(settings.anthropic_api_key ?? "");
-    setAiProvider(settings.preferred_ai_provider === "openai" ? "openai" : "anthropic");
+    setAiProvider(settings.preferred_ai_provider ?? "claude_agents");
     setAiBudget(
       settings.monthly_ai_budget_usd != null ? String(settings.monthly_ai_budget_usd) : "",
     );
@@ -214,7 +216,7 @@ function SettingsPage() {
         description="Integrációk, email küldési szabályok és kapcsolatok kezelése."
       />
 
-      {settings?.ai_provider_out_of_credit && (
+      {settings?.ai_provider_out_of_credit && aiProvider !== "claude_agents" && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" strokeWidth={1.5} />
           <p className="text-sm font-medium text-destructive">
@@ -264,12 +266,13 @@ function SettingsPage() {
               <div
                 role="radiogroup"
                 aria-label="Elsődleges AI szolgáltató"
-                className="inline-flex rounded-xl border border-border bg-secondary/40 p-1"
+                className="inline-flex flex-wrap rounded-xl border border-border bg-secondary/40 p-1"
               >
                 {(
                   [
                     { value: "anthropic", label: "Claude" },
                     { value: "openai", label: "OpenAI" },
+                    { value: "claude_agents", label: "Claude agentek (külső, API-kulcs nélkül)" },
                   ] as const
                 ).map((option) => (
                   <button
@@ -294,6 +297,12 @@ function SettingsPage() {
                 kulcs megadva, a rendszer automatikusan a másikat próbálja használni, ha ahhoz van
                 kulcs megadva.
               </p>
+              {aiProvider === "claude_agents" && (
+                <p className="max-w-2xl text-xs text-muted-foreground">
+                  Claude agent módban az alkalmazás nem hív OpenAI/Anthropic API-t — az AI-munkát a
+                  külső agentek végzik az alábbi Agent API-n keresztül.
+                </p>
+              )}
             </div>
 
             <div className="mt-6 max-w-md space-y-2">
@@ -562,6 +571,10 @@ function SettingsPage() {
           </SectionCard>
 
           <OutlookSection />
+
+          <AgentApiCard />
+
+          <BlocklistCard />
 
         </div>
       )}
