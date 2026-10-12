@@ -384,6 +384,7 @@ function FoundCompanies() {
           decision_maker_email: person.email ?? null,
           decision_maker_position: person.position ?? null,
           decision_maker_match_confidence: "magas",
+          decision_maker_source: "kezi",
         })
         .eq("id", row.id);
       if (error) throw error;
@@ -696,11 +697,13 @@ function FoundCompanies() {
                                   >
                                     <Pencil className="size-3.5" strokeWidth={1.5} />
                                   </Button>
-                                  {row.domain && row.domain_source === "ai_web_search" && (
-                                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                                      AI-javaslat — ellenőrizd
-                                    </span>
-                                  )}
+                                  {row.domain &&
+                                    (row.domain_source === "ai_web_search" ||
+                                      row.domain_source === "agent") && (
+                                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                        AI-javaslat — ellenőrizd
+                                      </span>
+                                    )}
                                   {row.domain &&
                                     row.domain_source === "ai_web_search" &&
                                     domainSources[row.id] && (
